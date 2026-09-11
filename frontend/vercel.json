@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://stormops-backend.onrender.com/api/$1"
+      "destination": "https://stormops-backend-4uoz.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
