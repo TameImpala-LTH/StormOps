@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { GeocodedLocationSchema } from '../types/weather';
 import { fetchCurrentWeather } from '../services/weather';
 
@@ -11,31 +11,52 @@ interface DeviceLocationContextType {
 
 const DeviceLocationContext = createContext<DeviceLocationContextType | undefined>(undefined);
 
+// 5-minute cooldown for client-side device weather re-fetching
+const REFETCH_COOLDOWN_MS = 5 * 60 * 1000;
+
 export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [deviceLocation, setDeviceLocation] = useState<GeocodedLocationSchema | null>(null);
   const [deviceTemperature, setDeviceTemperature] = useState<number | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
+  const isLocatingRef = useRef<boolean>(false);
+  const lastFetchRef = useRef<{ lat: number; lon: number; timestamp: number } | null>(null);
+
   const requestDeviceLocation = useCallback(async () => {
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation || isLocatingRef.current) {
       return;
     }
 
+    isLocatingRef.current = true;
     setIsLocating(true);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          
-          // Fetch current weather at device coordinates to get current temp & timezone
+          const now = Date.now();
+
+          // Check if we recently fetched weather for these exact coordinates
+          if (
+            lastFetchRef.current &&
+            Math.abs(lastFetchRef.current.lat - lat) < 0.01 &&
+            Math.abs(lastFetchRef.current.lon - lon) < 0.01 &&
+            now - lastFetchRef.current.timestamp < REFETCH_COOLDOWN_MS
+          ) {
+            // Already have recent weather for these coordinates
+            return;
+          }
+
+          // Fetch current weather at device coordinates
           const weatherData = await fetchCurrentWeather(lat, lon);
-          
+          lastFetchRef.current = { lat, lon, timestamp: now };
+
           // Reverse geocode via OpenStreetMap Nominatim client-side or fallback to weather location
           let locationName = weatherData.location?.name;
           let country = 'India';
           let admin1: string | undefined = undefined;
-          
+
           try {
             const nomRes = await fetch(
               `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16`,
@@ -60,7 +81,7 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
                 addr.state_district;
               country = addr.country || country;
               admin1 = addr.state;
-              
+
               if (locality && city && locality.toLowerCase() !== city.toLowerCase()) {
                 locationName = `${locality}, ${city}`;
               } else if (locality) {
@@ -89,11 +110,13 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
         } catch {
           // If network fails, silently maintain previous or neutral state
         } finally {
+          isLocatingRef.current = false;
           setIsLocating(false);
         }
       },
       () => {
-        // Geolocation permission denied or unavailable - keep neutral state, do not spam prompts
+        // Geolocation permission denied or unavailable
+        isLocatingRef.current = false;
         setIsLocating(false);
       },
       { timeout: 10000, enableHighAccuracy: true }
@@ -102,15 +125,17 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
 
   // Safe one-time initialization attempt on app load
   useEffect(() => {
-    // Check permission state if permissions API is available to avoid unexpected prompts
     if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
-        if (result.state === 'granted') {
-          requestDeviceLocation();
-        }
-      }).catch(() => {
-        // Fallback: don't auto-prompt if permissions API check fails
-      });
+      navigator.permissions
+        .query({ name: 'geolocation' as PermissionName })
+        .then((result) => {
+          if (result.state === 'granted') {
+            requestDeviceLocation();
+          }
+        })
+        .catch(() => {
+          // Fallback: don't auto-prompt if permissions API check fails
+        });
     }
   }, [requestDeviceLocation]);
 

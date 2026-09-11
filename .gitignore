@@ -57,9 +57,10 @@ coverage.xml
 test-results/
 playwright-report/
 blob-report/
-test_*.py
-test_*.js
-test_*.cjs
+/test_*.py
+/test_*.js
+*.cjs
+!backend/tests/*.py
 scratch_*.cjs
 verify_*.cjs
 diag_*.cjs
