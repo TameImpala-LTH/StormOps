@@ -23,7 +23,7 @@ class LLMService:
         client: Optional[httpx.AsyncClient] = None,
     ):
         self.api_key = api_key if api_key is not None else settings.ai_api_key
-        self.model = model or settings.ai_model or "gpt-4o-mini"
+        self.model = model or settings.ai_model or "openai/gpt-oss-120b"
         self.api_base = (api_base or settings.ai_api_base or "https://api.openai.com/v1").rstrip("/")
         self._client = client
 

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # AI / LLM Provider Configuration (Groq OpenAI-compatible & Whisper)
     ai_provider: str = "groq"
     ai_api_key: str = ""
-    ai_model: str = "llama-3.3-70b-versatile"
+    ai_model: str = "openai/gpt-oss-120b"
     ai_api_base: str = "https://api.groq.com/openai/v1"
     ai_transcription_model: str = "whisper-large-v3-turbo"
 
