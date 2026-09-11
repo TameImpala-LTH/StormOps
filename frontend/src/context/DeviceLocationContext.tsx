@@ -20,6 +20,7 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
   const isLocatingRef = useRef<boolean>(false);
+  const deviceLocationRef = useRef<GeocodedLocationSchema | null>(null);
   const lastFetchRef = useRef<{ lat: number; lon: number; timestamp: number } | null>(null);
 
   const requestDeviceLocation = useCallback(async () => {
@@ -37,8 +38,9 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
           const lon = pos.coords.longitude;
           const now = Date.now();
 
-          // Check if we recently fetched weather for these exact coordinates
+          // Check if we recently fetched weather for these exact coordinates and already have location set
           if (
+            deviceLocationRef.current &&
             lastFetchRef.current &&
             Math.abs(lastFetchRef.current.lat - lat) < 0.01 &&
             Math.abs(lastFetchRef.current.lon - lon) < 0.01 &&
@@ -48,19 +50,26 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
             return;
           }
 
-          // Fetch current weather at device coordinates
-          const weatherData = await fetchCurrentWeather(lat, lon);
+          // Fetch current weather at device coordinates (fail-safe)
+          let weatherData: any = null;
+          try {
+            weatherData = await fetchCurrentWeather(lat, lon);
+            if (typeof weatherData?.current?.temperature === 'number') {
+              setDeviceTemperature(weatherData.current.temperature);
+            }
+          } catch {
+            // Weather fetch failed, but proceed with reverse geocoding to resolve location name
+          }
           lastFetchRef.current = { lat, lon, timestamp: now };
 
           // Reverse geocode via OpenStreetMap Nominatim client-side or fallback to weather location
-          let locationName = weatherData.location?.name;
+          let locationName = weatherData?.location?.name;
           let country = 'India';
           let admin1: string | undefined = undefined;
 
           try {
             const nomRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16`,
-              { headers: { 'User-Agent': 'StormOps-WeatherGPT/1.0' } }
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16`
             );
             if (nomRes.ok) {
               const data = await nomRes.json();
@@ -95,20 +104,18 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
           }
 
           const devLoc: GeocodedLocationSchema = {
-            name: locationName || `Current Location (${lat.toFixed(2)}, ${lon.toFixed(2)})`,
+            name: locationName || 'Current Location',
             country: country,
             admin1: admin1,
             latitude: lat,
             longitude: lon,
-            timezone: weatherData.location?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+            timezone: weatherData?.location?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
           };
 
+          deviceLocationRef.current = devLoc;
           setDeviceLocation(devLoc);
-          if (typeof weatherData.current?.temperature === 'number') {
-            setDeviceTemperature(weatherData.current.temperature);
-          }
         } catch {
-          // If network fails, silently maintain previous or neutral state
+          // If unexpected error, silently maintain previous state
         } finally {
           isLocatingRef.current = false;
           setIsLocating(false);
@@ -119,24 +126,46 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
         isLocatingRef.current = false;
         setIsLocating(false);
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 60000 }
     );
   }, []);
 
   // Safe one-time initialization attempt on app load
   useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    let permissionStatus: PermissionStatus | null = null;
+
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions
         .query({ name: 'geolocation' as PermissionName })
         .then((result) => {
-          if (result.state === 'granted') {
+          permissionStatus = result;
+          if (result.state === 'granted' || result.state === 'prompt') {
             requestDeviceLocation();
           }
+          result.onchange = () => {
+            if (result.state === 'granted') {
+              requestDeviceLocation();
+            }
+          };
         })
         .catch(() => {
-          // Fallback: don't auto-prompt if permissions API check fails
+          // Fallback for browsers (like Safari) where permissions.query for geolocation fails
+          requestDeviceLocation();
         });
+    } else {
+      // Fallback for browsers without permissions.query
+      requestDeviceLocation();
     }
+
+    return () => {
+      if (permissionStatus) {
+        permissionStatus.onchange = null;
+      }
+    };
   }, [requestDeviceLocation]);
 
   return (

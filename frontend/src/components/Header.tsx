@@ -17,7 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuthModal,
 }) => {
   const { user, isAuthenticated } = useAuth();
-  const { deviceLocation, deviceTemperature } = useDeviceLocation();
+  const { deviceLocation, deviceTemperature, isLocating, requestDeviceLocation } = useDeviceLocation();
 
   // The LiveWeatherHeader strictly represents the current device location and temperature.
   const displayLocation = deviceLocation;
@@ -79,7 +79,12 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right side: persistent live weather/time header + theme switcher + Auth/Avatar */}
       <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
-        <LiveWeatherHeader location={displayLocation} temperature={displayTemperature} />
+        <LiveWeatherHeader
+          location={displayLocation}
+          temperature={displayTemperature}
+          isLocating={isLocating}
+          onRequestLocation={requestDeviceLocation}
+        />
         <ThemeToggle />
 
         {isAuthenticated && user ? (

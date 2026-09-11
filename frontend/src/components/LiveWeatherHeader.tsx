@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MapPin } from 'lucide-react';
+import { Clock, MapPin, Loader2 } from 'lucide-react';
 import { GeocodedLocationSchema } from '../types/weather';
 
 interface LiveWeatherHeaderProps {
   location?: GeocodedLocationSchema | null;
   temperature?: number | null;
+  isLocating?: boolean;
+  onRequestLocation?: () => void;
 }
 
 export const LiveWeatherHeader: React.FC<LiveWeatherHeaderProps> = ({
   location,
   temperature,
+  isLocating = false,
+  onRequestLocation,
 }) => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -40,7 +44,7 @@ export const LiveWeatherHeader: React.FC<LiveWeatherHeaderProps> = ({
     timeString = currentTime.toLocaleTimeString();
   }
 
-  // Format Date: e.g. "Tuesday, Sep 8, 2026"
+  // Format Date: e.g. "Tue, Sep 8, 2026"
   let dateString = '';
   try {
     dateString = new Intl.DateTimeFormat('en-US', {
@@ -55,8 +59,14 @@ export const LiveWeatherHeader: React.FC<LiveWeatherHeaderProps> = ({
   }
 
   const hasLocation = Boolean(location?.name);
-  const locationDisplay = hasLocation ? location?.name : 'StormOps Active';
   const tempDisplay = typeof temperature === 'number' ? `${Math.round(temperature)}°C` : null;
+
+  let tooltipTitle = 'StormOps Active (Location unavailable)';
+  if (isLocating && !hasLocation) {
+    tooltipTitle = 'Detecting current device location...';
+  } else if (hasLocation) {
+    tooltipTitle = `Live Location: ${location?.name} (${timezone})`;
+  }
 
   return (
     <div
@@ -66,24 +76,56 @@ export const LiveWeatherHeader: React.FC<LiveWeatherHeaderProps> = ({
         borderColor: 'var(--border-muted)',
         color: 'var(--text-primary)',
       }}
-      title={`Active Location: ${locationDisplay} (${timezone})`}
+      title={tooltipTitle}
     >
       {/* Location & Temp */}
       <div className="flex items-center space-x-1.5 font-semibold tracking-tight">
-        <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-        <span className="text-[11px] font-medium truncate max-w-[100px] sm:max-w-[140px]" style={{ color: 'var(--text-primary)' }}>
-          {locationDisplay}
-        </span>
-        {tempDisplay && (
-          <span
-            className="px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold"
-            style={{
-              backgroundColor: 'var(--accent-muted)',
-              color: 'var(--accent-text)',
-            }}
+        {isLocating && !hasLocation ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin" style={{ color: 'var(--accent)' }} />
+            <span
+              className="text-[11px] font-medium animate-pulse"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Locating...
+            </span>
+          </>
+        ) : hasLocation ? (
+          <>
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+            <span
+              className="text-[11px] font-medium truncate max-w-[100px] sm:max-w-[140px]"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {location?.name}
+            </span>
+            {tempDisplay && (
+              <span
+                className="px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold"
+                style={{
+                  backgroundColor: 'var(--accent-muted)',
+                  color: 'var(--accent-text)',
+                }}
+              >
+                {tempDisplay}
+              </span>
+            )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onRequestLocation}
+            className="flex items-center space-x-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+            title="Click to detect device location"
           >
-            {tempDisplay}
-          </span>
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0 opacity-60" style={{ color: 'var(--text-muted)' }} />
+            <span
+              className="text-[11px] font-medium truncate max-w-[100px] sm:max-w-[140px]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              StormOps Active
+            </span>
+          </button>
         )}
       </div>
 
