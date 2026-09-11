@@ -1,0 +1,29 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WeatherGPT</title>
+    <!--
+      FOUC Prevention: Apply stored theme class to <html> synchronously
+      before any styles load. Prevents flash of wrong theme on page load.
+    -->
+    <script>
+      (function () {
+        var VALID = ['dark', 'light', 'night'];
+        var KEY = 'stormops-theme';
+        var theme = 'dark';
+        try {
+          var stored = localStorage.getItem(KEY);
+          if (stored && VALID.indexOf(stored) !== -1) theme = stored;
+        } catch (_) {}
+        document.documentElement.classList.add('theme-' + theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

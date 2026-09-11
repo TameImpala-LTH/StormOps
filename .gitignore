@@ -1,0 +1,101 @@
+# ==============================================================================
+# StormOps — Git Ignore Configuration
+# ==============================================================================
+
+# Environment variables & secrets (STRICT: all .env files in all directories)
+.env
+.env.*
+*.env
+*.env.local
+.env.local
+.env.*.local
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+!*.env.example
+
+# Dependencies
+node_modules/
+**/node_modules/
+venv/
+.venv/
+env/
+**/venv/
+**/env/
+
+# Python compiled artifacts & bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+.pyo
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# Frontend build outputs
+frontend/dist/
+frontend/build/
+**/dist/
+**/build/
+
+# Testing & Coverage
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+test-results/
+playwright-report/
+blob-report/
+test_*.py
+test_*.js
+test_*.cjs
+scratch_*.cjs
+verify_*.cjs
+diag_*.cjs
+step_diag.cjs
+print_*.cjs
+scratch/
+**/.system_generated/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Misc temporary files
+*.bak
+*.tmp
+*.temp
+
