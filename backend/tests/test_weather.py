@@ -14,8 +14,8 @@ from app.services.weather_service import WeatherService, get_condition_text, wea
 
 client = TestClient(app)
 
-# Mock Open-Meteo current weather payload
-MOCK_OPEN_METEO_CURRENT = {
+# Mock Open-Meteo unified weather payload (containing both current and hourly)
+MOCK_OPEN_METEO_UNIFIED = {
     "latitude": 22.57,
     "longitude": 88.36,
     "timezone": "Asia/Kolkata",
@@ -29,25 +29,19 @@ MOCK_OPEN_METEO_CURRENT = {
         "weather_code": 61,
     },
     "hourly": {
-        "time": ["2026-09-05T18:00"],
-        "precipitation_probability": [75],
-    },
-}
-
-# Mock Open-Meteo forecast payload
-MOCK_OPEN_METEO_FORECAST = {
-    "latitude": 22.57,
-    "longitude": 88.36,
-    "timezone": "Asia/Kolkata",
-    "hourly": {
         "time": ["2026-09-05T18:00", "2026-09-05T19:00"],
         "temperature_2m": [29.5, 28.9],
+        "apparent_temperature": [33.1, 32.0],
+        "relative_humidity_2m": [82, 85],
         "weather_code": [61, 3],
         "precipitation_probability": [75, 40],
         "precipitation": [0.5, 0.0],
         "wind_speed_10m": [12.4, 10.1],
     },
 }
+
+MOCK_OPEN_METEO_CURRENT = MOCK_OPEN_METEO_UNIFIED
+MOCK_OPEN_METEO_FORECAST = MOCK_OPEN_METEO_UNIFIED
 
 
 @pytest.fixture(autouse=True)
@@ -178,8 +172,52 @@ def test_malformed_provider_response(mock_fetch):
 
 
 # ==============================================================================
-# Caching, Deduplication, 429 Retry, and Stale Fallback Tests
+# Unified Bundle, Caching, Deduplication, 429 Retry, and Stale Fallback Tests
 # ==============================================================================
+
+
+@pytest.mark.asyncio
+async def test_weather_bundle_single_request():
+    """Verify that get_weather_bundle returns both current and forecast with EXACTLY ONE HTTP request."""
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = MOCK_OPEN_METEO_UNIFIED
+    mock_client.get.return_value = mock_response
+
+    service = WeatherService(client=mock_client)
+    curr, forecast = await service.get_weather_bundle(22.5726, 88.3639, hours=24)
+
+    assert curr.current.temperature == 29.5
+    assert len(forecast.hourly) == 2
+    assert forecast.hourly[0].temperature == 29.5
+    assert mock_client.get.call_count == 1  # Exactly ONE HTTP request made!
+
+
+@pytest.mark.asyncio
+async def test_cache_shared_between_current_and_forecast():
+    """Verify that calling get_current_weather and then get_forecast for the same location reuses the same cache."""
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = MOCK_OPEN_METEO_UNIFIED
+    mock_client.get.return_value = mock_response
+
+    service = WeatherService(client=mock_client, fresh_ttl=60.0)
+
+    # 1. Device location check calls get_current_weather
+    curr = await service.get_current_weather(22.5726, 88.3639)
+    assert curr.current.temperature == 29.5
+    assert mock_client.get.call_count == 1
+
+    # 2. Subsequent chat query calls get_forecast or get_weather_bundle for the same coordinates
+    forecast = await service.get_forecast(22.5726, 88.3639, hours=24)
+    assert forecast.hourly[0].temperature == 29.5
+    assert mock_client.get.call_count == 1  # Zero additional HTTP requests!
+
+    bundle_curr, bundle_forecast = await service.get_weather_bundle(22.5726, 88.3639, hours=24)
+    assert bundle_curr.current.temperature == 29.5
+    assert mock_client.get.call_count == 1  # Still zero additional HTTP requests!
 
 
 @pytest.mark.asyncio
@@ -188,7 +226,7 @@ async def test_weather_service_caching_and_hit():
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = 200
-    mock_response.json.return_value = MOCK_OPEN_METEO_CURRENT
+    mock_response.json.return_value = MOCK_OPEN_METEO_UNIFIED
     mock_client.get.return_value = mock_response
 
     service = WeatherService(client=mock_client, fresh_ttl=60.0)
@@ -213,7 +251,7 @@ async def test_weather_service_request_deduplication():
         await asyncio.sleep(0.05)
         resp = MagicMock(spec=httpx.Response)
         resp.status_code = 200
-        resp.json.return_value = MOCK_OPEN_METEO_CURRENT
+        resp.json.return_value = MOCK_OPEN_METEO_UNIFIED
         return resp
 
     mock_client.get.side_effect = delayed_get
@@ -241,7 +279,7 @@ async def test_weather_service_429_retry_and_success():
 
     resp_200 = MagicMock(spec=httpx.Response)
     resp_200.status_code = 200
-    resp_200.json.return_value = MOCK_OPEN_METEO_CURRENT
+    resp_200.json.return_value = MOCK_OPEN_METEO_UNIFIED
 
     # First attempt returns 429, second attempt returns 200 OK
     mock_client.get.side_effect = [resp_429, resp_200]
@@ -261,7 +299,7 @@ async def test_weather_service_stale_cache_fallback_on_429():
     # Populate cache initially
     resp_200 = MagicMock(spec=httpx.Response)
     resp_200.status_code = 200
-    resp_200.json.return_value = MOCK_OPEN_METEO_CURRENT
+    resp_200.json.return_value = MOCK_OPEN_METEO_UNIFIED
     mock_client.get.return_value = resp_200
 
     service = WeatherService(client=mock_client, fresh_ttl=0.01, stale_ttl=3600.0, base_retry_delay=0.01)
@@ -308,7 +346,7 @@ async def test_weather_service_different_locations_cached_independently():
     """Verify different coordinate locations maintain independent cache entries."""
     mock_client = AsyncMock(spec=httpx.AsyncClient)
 
-    delhi_payload = dict(MOCK_OPEN_METEO_CURRENT)
+    delhi_payload = dict(MOCK_OPEN_METEO_UNIFIED)
     delhi_payload["latitude"] = 28.61
     delhi_payload["longitude"] = 77.20
 

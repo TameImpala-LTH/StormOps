@@ -1,11 +1,11 @@
-"""Weather service for communicating with Open-Meteo weather API with caching, deduplication, and resilient 429 backoff."""
+"""Weather service for communicating with Open-Meteo weather API with unified requests, caching, deduplication, and resilient 429 backoff."""
 
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import HTTPException
 import httpx
@@ -80,7 +80,7 @@ class CacheEntry:
 
 
 class WeatherService:
-    """Service handling weather data retrieval, normalization, caching, and 429 resilience."""
+    """Service handling unified weather data retrieval, normalization, caching, and 429 resilience."""
 
     def __init__(
         self,
@@ -108,6 +108,20 @@ class WeatherService:
         """Clear all in-memory weather cache entries and in-flight tracking."""
         self._cache.clear()
         self._inflight.clear()
+
+    def _build_unified_params(self, latitude: float, longitude: float) -> Dict[str, Any]:
+        """Construct canonical parameters for unified Open-Meteo current + 7-day hourly forecast query."""
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
+            "hourly": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m",
+            "forecast_days": 7,
+            "timezone": "auto",
+        }
+        if settings.weather_api_key and settings.weather_api_key.strip():
+            params["apikey"] = settings.weather_api_key.strip()
+        return params
 
     def _make_cache_key(self, params: Dict[str, Any]) -> str:
         """Generate a canonical normalized cache key for weather requests.
@@ -287,26 +301,18 @@ class WeatherService:
             # Wait for primary caller's in-flight future
             return await asyncio.shield(inflight_future)
 
-    async def get_current_weather(
-        self, latitude: float, longitude: float
+    def _parse_current_weather(
+        self, data: Dict[str, Any], latitude: float, longitude: float
     ) -> CurrentWeatherResponse:
-        """Retrieve current weather observation for specified coordinates."""
-        params = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
-            "hourly": "precipitation_probability",
-            "forecast_days": 1,
-            "timezone": "auto",
-        }
-
-        data = await self._fetch(params)
-
+        """Parse normalized CurrentWeatherResponse from raw Open-Meteo response dictionary."""
         try:
-            current_raw = data["current"]
+            current_raw = data.get("current")
+            if not current_raw or not isinstance(current_raw, dict):
+                raise ValueError("Missing 'current' object in provider response")
+
             tz_name = data.get("timezone", "UTC")
 
-            # Extract precipitation probability from current hour if present
+            # Extract precipitation probability from current hour if present in hourly
             precip_prob = None
             hourly_raw = data.get("hourly", {})
             hourly_times = hourly_raw.get("time", [])
@@ -323,7 +329,7 @@ class WeatherService:
             code = int(current_raw["weather_code"])
             current = CurrentWeather(
                 temperature=float(current_raw["temperature_2m"]),
-                feels_like=float(current_raw["apparent_temperature"]),
+                feels_like=float(current_raw.get("apparent_temperature", current_raw["temperature_2m"])),
                 condition=get_condition_text(code),
                 weather_code=code,
                 humidity=int(current_raw["relative_humidity_2m"]),
@@ -346,37 +352,29 @@ class WeatherService:
                 timestamp=datetime.now(timezone.utc).isoformat(),
             )
         except (KeyError, ValueError, TypeError) as exc:
-            logger.error(f"Failed to parse provider response: {exc}")
+            logger.error(f"Failed to parse current weather response: {exc}")
             raise HTTPException(
                 status_code=502, detail="Failed to parse weather provider response"
             )
 
-    async def get_forecast(
-        self, latitude: float, longitude: float, hours: int = 24
+    def _parse_forecast(
+        self, data: Dict[str, Any], latitude: float, longitude: float, hours: int = 24
     ) -> ForecastResponse:
-        """Retrieve hourly forecast data for specified coordinates and hours."""
-        forecast_days = max(1, min(7, (hours + 23) // 24))
-        params = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "hourly": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m",
-            "forecast_days": forecast_days,
-            "timezone": "auto",
-        }
-
-        data = await self._fetch(params)
-
+        """Parse normalized ForecastResponse from raw Open-Meteo response dictionary."""
         try:
-            hourly_raw = data["hourly"]
+            hourly_raw = data.get("hourly")
+            if not hourly_raw or not isinstance(hourly_raw, dict):
+                raise ValueError("Missing 'hourly' object in provider response")
+
             tz_name = data.get("timezone", "UTC")
 
-            times = hourly_raw["time"]
-            temperatures = hourly_raw["temperature_2m"]
+            times = hourly_raw.get("time", [])
+            temperatures = hourly_raw.get("temperature_2m", [])
             apparent_temps = hourly_raw.get("apparent_temperature", [])
-            codes = hourly_raw["weather_code"]
+            codes = hourly_raw.get("weather_code", [])
             precip_probs = hourly_raw.get("precipitation_probability", [])
-            precips = hourly_raw["precipitation"]
-            winds = hourly_raw["wind_speed_10m"]
+            precips = hourly_raw.get("precipitation", [])
+            winds = hourly_raw.get("wind_speed_10m", [])
 
             hourly_items = []
             max_idx = min(len(times), hours)
@@ -423,6 +421,30 @@ class WeatherService:
             raise HTTPException(
                 status_code=502, detail="Failed to parse weather provider response"
             )
+
+    async def get_weather_bundle(
+        self, latitude: float, longitude: float, hours: int = 168
+    ) -> Tuple[CurrentWeatherResponse, ForecastResponse]:
+        """Retrieve unified current conditions and forecast in ONE Open-Meteo provider request."""
+        curr = await self.get_current_weather(latitude, longitude)
+        forecast = await self.get_forecast(latitude, longitude, hours=hours)
+        return curr, forecast
+
+    async def get_current_weather(
+        self, latitude: float, longitude: float
+    ) -> CurrentWeatherResponse:
+        """Retrieve current weather observation using unified parameters to share cache."""
+        params = self._build_unified_params(latitude, longitude)
+        data = await self._fetch(params)
+        return self._parse_current_weather(data, latitude, longitude)
+
+    async def get_forecast(
+        self, latitude: float, longitude: float, hours: int = 24
+    ) -> ForecastResponse:
+        """Retrieve hourly forecast data using unified parameters to share cache."""
+        params = self._build_unified_params(latitude, longitude)
+        data = await self._fetch(params)
+        return self._parse_forecast(data, latitude, longitude, hours=hours)
 
 
 weather_service = WeatherService()

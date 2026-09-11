@@ -556,12 +556,10 @@ class QueryService:
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
 
-            # Fetch weather for Location A and Location B (168 hours = 7 days)
+            # Fetch weather for Location A and Location B (168 hours = 7 days) via unified bundle (1 request per location)
             try:
-                current_a = await weather_service.get_current_weather(loc_a_geo.latitude, loc_a_geo.longitude)
-                forecast_a = await weather_service.get_forecast(loc_a_geo.latitude, loc_a_geo.longitude, hours=168)
-                current_b = await weather_service.get_current_weather(loc_b_geo.latitude, loc_b_geo.longitude)
-                forecast_b = await weather_service.get_forecast(loc_b_geo.latitude, loc_b_geo.longitude, hours=168)
+                current_a, forecast_a = await weather_service.get_weather_bundle(loc_a_geo.latitude, loc_a_geo.longitude, hours=168)
+                current_b, forecast_b = await weather_service.get_weather_bundle(loc_b_geo.latitude, loc_b_geo.longitude, hours=168)
             except HTTPException:
                 return QueryResponse(
                     query=query_info,
@@ -783,12 +781,9 @@ class QueryService:
             )
 
 
-        # Step 4: Fetch Real Weather Data (Fetch 168h forecast = 7 days)
+        # Step 4: Fetch Real Weather Data in ONE unified Open-Meteo request (168h forecast = 7 days)
         try:
-            current_res = await weather_service.get_current_weather(
-                geocoded.latitude, geocoded.longitude
-            )
-            forecast_res = await weather_service.get_forecast(
+            current_res, forecast_res = await weather_service.get_weather_bundle(
                 geocoded.latitude, geocoded.longitude, hours=168
             )
         except HTTPException:
