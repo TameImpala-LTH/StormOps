@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     weather_api_key: str = ""
     weather_api_base_url: str = "https://api.open-meteo.com/v1/forecast"
 
+    # Fallback Weather Provider (OpenWeather)
+    openweather_api_key: str = ""
+    openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
+
     # AI / LLM Provider Configuration (Groq OpenAI-compatible & Whisper)
     ai_provider: str = "groq"
     ai_api_key: str = ""

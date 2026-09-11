@@ -90,6 +90,7 @@ class WeatherService:
         stale_ttl: float = 7200.0,
         max_retries: int = 3,
         base_retry_delay: float = 0.5,
+        openweather_service: Optional[Any] = None,
     ):
         self.base_url = base_url or settings.weather_api_base_url or "https://api.open-meteo.com/v1/forecast"
         self._client = client
@@ -97,6 +98,12 @@ class WeatherService:
         self.stale_ttl = stale_ttl
         self.max_retries = max_retries
         self.base_retry_delay = base_retry_delay
+
+        if openweather_service is not None:
+            self.openweather_service = openweather_service
+        else:
+            from app.services.openweather_service import openweather_service as default_owm
+            self.openweather_service = default_owm
 
         # In-memory cache keyed by canonical request signature
         self._cache: Dict[str, CacheEntry] = {}
@@ -293,7 +300,36 @@ class WeatherService:
                 return data
 
             except Exception as exc:
-                # 3. Graceful fallback: Stale cache fallback if provider is down or rate limited
+                # 3. Automatic OpenWeather fallback if Open-Meteo failed
+                if self.openweather_service and self.openweather_service.is_configured:
+                    logger.warning(
+                        f"Open-Meteo failed ({exc}), attempting OpenWeather fallback"
+                    )
+                    try:
+                        lat = float(params.get("latitude", 0.0))
+                        lon = float(params.get("longitude", 0.0))
+                        owm_data = await self.openweather_service.fetch_unified_data(lat, lon)
+                        logger.info("OpenWeather fallback succeeded")
+
+                        # Store fresh cache
+                        async with self._lock:
+                            self._cache[cache_key] = CacheEntry(
+                                data=owm_data,
+                                created_at=time.monotonic(),
+                                fresh_ttl=self.fresh_ttl,
+                                stale_ttl=self.stale_ttl,
+                            )
+                            if len(self._cache) > 1000:
+                                oldest_key = next(iter(self._cache))
+                                self._cache.pop(oldest_key, None)
+
+                        if not inflight_future.done():
+                            inflight_future.set_result(owm_data)
+                        return owm_data
+                    except Exception as owm_exc:
+                        logger.error(f"OpenWeather fallback also failed: {owm_exc}")
+
+                # 4. Graceful fallback: Stale cache fallback if provider is down or rate limited
                 stale_entry = self._cache.get(cache_key)
                 if stale_entry and stale_entry.is_stale_usable():
                     logger.warning(
@@ -366,7 +402,7 @@ class WeatherService:
             return CurrentWeatherResponse(
                 location=location,
                 current=current,
-                source="open-meteo",
+                source=data.get("source", "open-meteo"),
                 timestamp=datetime.now(timezone.utc).isoformat(),
             )
         except (KeyError, ValueError, TypeError) as exc:
@@ -431,7 +467,7 @@ class WeatherService:
             return ForecastResponse(
                 location=location,
                 hourly=hourly_items,
-                source="open-meteo",
+                source=data.get("source", "open-meteo"),
                 timestamp=datetime.now(timezone.utc).isoformat(),
             )
         except (KeyError, ValueError, TypeError) as exc:

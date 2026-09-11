@@ -5,6 +5,7 @@ import app.core.compat  # noqa: F401 — must be imported before FastAPI/pydanti
 import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import httpx
 import pytest
@@ -302,7 +303,13 @@ async def test_weather_service_stale_cache_fallback_on_429():
     resp_200.json.return_value = MOCK_OPEN_METEO_UNIFIED
     mock_client.get.return_value = resp_200
 
-    service = WeatherService(client=mock_client, fresh_ttl=0.01, stale_ttl=3600.0, base_retry_delay=0.01)
+    service = WeatherService(
+        client=mock_client,
+        fresh_ttl=0.01,
+        stale_ttl=3600.0,
+        base_retry_delay=0.01,
+        openweather_service=MagicMock(is_configured=False),
+    )
     initial_res = await service.get_current_weather(22.5726, 88.3639)
     assert initial_res.current.temperature == 29.5
     assert mock_client.get.call_count == 1
@@ -333,7 +340,12 @@ async def test_weather_service_429_exhausted_no_cache():
     resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Too Many Requests", request=None, response=resp_429)
     mock_client.get.side_effect = [resp_429, resp_429, resp_429, resp_429]
 
-    service = WeatherService(client=mock_client, max_retries=2, base_retry_delay=0.01)
+    service = WeatherService(
+        client=mock_client,
+        max_retries=2,
+        base_retry_delay=0.01,
+        openweather_service=MagicMock(is_configured=False),
+    )
 
     with pytest.raises(Exception) as exc_info:
         await service.get_current_weather(28.6139, 77.2090)
@@ -384,7 +396,11 @@ async def test_weather_service_429_diagnostic_logging_and_no_secrets(caplog):
     resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Too Many Requests", request=None, response=resp_429)
     mock_client.get.return_value = resp_429
 
-    service = WeatherService(client=mock_client, max_retries=0)
+    service = WeatherService(
+        client=mock_client,
+        max_retries=0,
+        openweather_service=MagicMock(is_configured=False),
+    )
 
     with caplog.at_level(logging.WARNING):
         with pytest.raises(Exception):
@@ -419,3 +435,294 @@ def test_diagnostics_open_meteo_endpoint():
         assert "body" in data
         assert "elapsed_seconds" in data
         assert "temperature_2m" in data["body"]
+
+
+# ==============================================================================
+# OpenWeather Secondary Fallback Provider Tests
+# ==============================================================================
+
+MOCK_OWM_CURRENT = {
+    "coord": {"lon": 88.3639, "lat": 22.5726},
+    "weather": [{"id": 801, "main": "Clouds", "description": "few clouds", "icon": "02d"}],
+    "main": {
+        "temp": 31.5,
+        "feels_like": 35.0,
+        "temp_min": 31.0,
+        "temp_max": 32.0,
+        "humidity": 65,
+    },
+    "wind": {"speed": 4.0, "deg": 170},  # 4.0 m/s = 14.4 km/h
+    "rain": {"1h": 0.8},
+    "dt": 1726117200,
+    "timezone": 19800,
+    "name": "Kolkata",
+    "cod": 200,
+}
+
+MOCK_OWM_FORECAST = {
+    "cod": "200",
+    "message": 0,
+    "cnt": 2,
+    "list": [
+        {
+            "dt": 1726117200,
+            "main": {
+                "temp": 31.5,
+                "feels_like": 35.0,
+                "humidity": 65,
+            },
+            "weather": [{"id": 500, "main": "Rain", "description": "light rain", "icon": "10d"}],
+            "wind": {"speed": 3.0, "deg": 170},  # 3.0 m/s = 10.8 km/h
+            "pop": 0.60,
+            "rain": {"3h": 1.5},
+            "dt_txt": "2026-09-12 06:00:00",
+        },
+        {
+            "dt": 1726128000,
+            "main": {
+                "temp": 29.0,
+                "feels_like": 32.0,
+                "humidity": 70,
+            },
+            "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+            "wind": {"speed": 2.5, "deg": 180},
+            "pop": 0.10,
+            "dt_txt": "2026-09-12 09:00:00",
+        },
+    ],
+    "city": {
+        "id": 1275004,
+        "name": "Kolkata",
+        "coord": {"lat": 22.5726, "lon": 88.3639},
+        "country": "IN",
+        "timezone": 19800,
+    },
+}
+
+
+@pytest.mark.asyncio
+async def test_open_meteo_success_openweather_not_called():
+    """1. When Open-Meteo succeeds, OpenWeather fallback is NOT called."""
+    mock_om_client = AsyncMock(spec=httpx.AsyncClient)
+    resp_200 = MagicMock(spec=httpx.Response)
+    resp_200.status_code = 200
+    resp_200.json.return_value = MOCK_OPEN_METEO_UNIFIED
+    mock_om_client.get.return_value = resp_200
+
+    from app.services.openweather_service import OpenWeatherService
+    mock_owm = MagicMock(spec=OpenWeatherService)
+    mock_owm.is_configured = True
+    mock_owm.fetch_unified_data = AsyncMock()
+
+    service = WeatherService(client=mock_om_client, openweather_service=mock_owm)
+    res = await service.get_current_weather(22.5726, 88.3639)
+
+    assert res.current.temperature == 29.5
+    assert res.source == "open-meteo"
+    assert mock_owm.fetch_unified_data.called is False
+
+
+@pytest.mark.asyncio
+async def test_open_meteo_429_openweather_fallback_called(caplog):
+    """2. When Open-Meteo returns HTTP 429, OpenWeather fallback is called and logged."""
+    import logging
+
+    mock_om_client = AsyncMock(spec=httpx.AsyncClient)
+    resp_429 = MagicMock(spec=httpx.Response)
+    resp_429.status_code = 429
+    resp_429.headers = {"Retry-After": "1"}
+    resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Rate limited", request=None, response=resp_429)
+    mock_om_client.get.return_value = resp_429
+
+    from app.services.openweather_service import OpenWeatherService
+    mock_owm = MagicMock(spec=OpenWeatherService)
+    mock_owm.is_configured = True
+
+    owm_unified = {
+        "latitude": 22.5726,
+        "longitude": 88.3639,
+        "timezone": "UTC+05:30",
+        "source": "openweather",
+        "current": {
+            "time": "2026-09-12T06:00",
+            "temperature_2m": 31.5,
+            "apparent_temperature": 35.0,
+            "relative_humidity_2m": 65,
+            "weather_code": 1,
+            "wind_speed_10m": 14.4,
+            "precipitation": 0.8,
+        },
+        "hourly": {
+            "time": ["2026-09-12T06:00", "2026-09-12T09:00"],
+            "temperature_2m": [31.5, 29.0],
+            "apparent_temperature": [35.0, 32.0],
+            "weather_code": [61, 0],
+            "precipitation_probability": [60, 10],
+            "precipitation": [1.5, 0.0],
+            "wind_speed_10m": [10.8, 9.0],
+        },
+    }
+    mock_owm.fetch_unified_data = AsyncMock(return_value=owm_unified)
+
+    service = WeatherService(client=mock_om_client, max_retries=0, openweather_service=mock_owm)
+
+    with caplog.at_level(logging.INFO):
+        res = await service.get_current_weather(22.5726, 88.3639)
+
+    assert res.current.temperature == 31.5
+    assert res.source == "openweather"
+    assert mock_owm.fetch_unified_data.called is True
+
+    # Verify required diagnostic log strings
+    log_text = " ".join(record.message for record in caplog.records)
+    assert "Open-Meteo failed" in log_text
+    assert "attempting OpenWeather fallback" in log_text
+    assert "OpenWeather fallback succeeded" in log_text
+
+
+@pytest.mark.asyncio
+async def test_open_meteo_timeout_openweather_fallback_called(caplog):
+    """3. When Open-Meteo times out, OpenWeather fallback is called."""
+    import logging
+
+    mock_om_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_om_client.get.side_effect = httpx.TimeoutException("Connection timed out")
+
+    from app.services.openweather_service import OpenWeatherService
+    mock_owm = MagicMock(spec=OpenWeatherService)
+    mock_owm.is_configured = True
+    owm_unified = {
+        "latitude": 22.5726,
+        "longitude": 88.3639,
+        "timezone": "UTC+05:30",
+        "source": "openweather",
+        "current": {
+            "time": "2026-09-12T06:00",
+            "temperature_2m": 31.5,
+            "apparent_temperature": 35.0,
+            "relative_humidity_2m": 65,
+            "weather_code": 1,
+            "wind_speed_10m": 14.4,
+            "precipitation": 0.8,
+        },
+        "hourly": {
+            "time": ["2026-09-12T06:00"],
+            "temperature_2m": [31.5],
+            "apparent_temperature": [35.0],
+            "weather_code": [61],
+            "precipitation_probability": [60],
+            "precipitation": [1.5],
+            "wind_speed_10m": [10.8],
+        },
+    }
+    mock_owm.fetch_unified_data = AsyncMock(return_value=owm_unified)
+
+    service = WeatherService(client=mock_om_client, max_retries=0, openweather_service=mock_owm)
+
+    with caplog.at_level(logging.INFO):
+        curr, forecast = await service.get_weather_bundle(22.5726, 88.3639, hours=24)
+
+    assert curr.current.temperature == 31.5
+    assert curr.source == "openweather"
+    assert forecast.hourly[0].temperature == 31.5
+    assert mock_owm.fetch_unified_data.called is True
+
+
+@pytest.mark.asyncio
+async def test_openweather_success_normalized_into_existing_schema():
+    """4. OpenWeather success is normalized into the exact existing schema contracts."""
+    from app.services.openweather_service import OpenWeatherService
+
+    mock_http = AsyncMock(spec=httpx.AsyncClient)
+    resp_curr = MagicMock(spec=httpx.Response)
+    resp_curr.status_code = 200
+    resp_curr.json.return_value = MOCK_OWM_CURRENT
+
+    resp_forecast = MagicMock(spec=httpx.Response)
+    resp_forecast.status_code = 200
+    resp_forecast.json.return_value = MOCK_OWM_FORECAST
+
+    mock_http.get.side_effect = [resp_curr, resp_forecast]
+
+    owm_service = OpenWeatherService(api_key="test_owm_key", client=mock_http)
+    curr_res, forecast_res = await owm_service.get_weather_bundle(22.5726, 88.3639, hours=48)
+
+    # Verify CurrentWeatherResponse contract
+    assert curr_res.source == "openweather"
+    assert curr_res.current.temperature == 31.5
+    assert curr_res.current.feels_like == 35.0
+    assert curr_res.current.humidity == 65
+    assert curr_res.current.wind_speed == 14.4  # 4.0 m/s * 3.6 = 14.4 km/h
+    assert curr_res.current.precipitation == 0.8
+    assert curr_res.location.name == "Kolkata"
+
+    # Verify ForecastResponse contract
+    assert forecast_res.source == "openweather"
+    assert len(forecast_res.hourly) == 2
+    assert forecast_res.hourly[0].temperature == 31.5
+    assert forecast_res.hourly[0].wind_speed == 10.8  # 3.0 m/s * 3.6 = 10.8 km/h
+    assert forecast_res.hourly[0].precipitation_probability == 60  # pop 0.60 -> 60%
+    assert forecast_res.hourly[0].weather_code == 61  # OWM id 500 -> WMO 61
+    assert forecast_res.hourly[0].condition == "Slight rain"
+
+
+@pytest.mark.asyncio
+async def test_both_providers_fail_graceful_behavior():
+    """5. When both Open-Meteo and OpenWeather fail, existing graceful failure behavior (502) is preserved."""
+    mock_om_client = AsyncMock(spec=httpx.AsyncClient)
+    resp_429 = MagicMock(spec=httpx.Response)
+    resp_429.status_code = 429
+    resp_429.headers = {}
+    resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Rate limit", request=None, response=resp_429)
+    mock_om_client.get.return_value = resp_429
+
+    from app.services.openweather_service import OpenWeatherService
+    mock_owm = MagicMock(spec=OpenWeatherService)
+    mock_owm.is_configured = True
+    mock_owm.fetch_unified_data = AsyncMock(side_effect=HTTPException(status_code=502, detail="OpenWeather failed"))
+
+    service = WeatherService(client=mock_om_client, max_retries=0, openweather_service=mock_owm)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_current_weather(22.5726, 88.3639)
+
+    assert exc_info.value.status_code in (502, 504)
+
+
+def test_missing_openweather_api_key_safe_startup():
+    """6. Missing OPENWEATHER_API_KEY does not crash application startup and is_configured is False."""
+    from app.services.openweather_service import OpenWeatherService
+
+    service = OpenWeatherService(api_key="")
+    assert service.is_configured is False
+
+    service_whitespace = OpenWeatherService(api_key="   ")
+    assert service_whitespace.is_configured is False
+
+
+@pytest.mark.asyncio
+async def test_openweather_auth_error_no_retry_no_secret_leak(caplog):
+    """7. OpenWeather 401/403 is treated as configuration error, not retried, and never logs secret API key."""
+    import logging
+    from app.services.openweather_service import OpenWeatherService
+
+    secret_key = "super_secret_openweather_key_12345"
+    mock_http = AsyncMock(spec=httpx.AsyncClient)
+    resp_401 = MagicMock(spec=httpx.Response)
+    resp_401.status_code = 401
+    mock_http.get.return_value = resp_401
+
+    service = OpenWeatherService(api_key=secret_key, client=mock_http)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(HTTPException) as exc_info:
+            await service.get_current_weather(22.5726, 88.3639)
+
+    assert exc_info.value.status_code == 502
+    assert mock_http.get.call_count == 1  # No repeated retry loop
+
+    # Check logs
+    log_text = " ".join(record.message for record in caplog.records)
+    assert "OpenWeather authentication failed" in log_text
+    assert secret_key not in log_text  # Key never leaked in logs!
+
