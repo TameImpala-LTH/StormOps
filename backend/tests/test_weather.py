@@ -400,3 +400,22 @@ async def test_weather_service_429_diagnostic_logging_and_no_secrets(caplog):
     # CRITICAL: Verify secrets are NEVER leaked in logs
     assert "super-secret-token" not in log_text
     assert "secret-api-key-12345" not in log_text
+
+
+def test_diagnostics_open_meteo_endpoint():
+    """Verify that GET /api/diagnostics/open-meteo executes direct check and returns status, headers, body, elapsed_seconds."""
+    with patch("httpx.AsyncClient.get") as mock_get:
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "application/json"}
+        mock_response.text = '{"latitude": 22.56263, "current": {"temperature_2m": 28.5}}'
+        mock_get.return_value = mock_response
+
+        response = client.get("/api/diagnostics/open-meteo")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status_code"] == 200
+        assert "headers" in data
+        assert "body" in data
+        assert "elapsed_seconds" in data
+        assert "temperature_2m" in data["body"]

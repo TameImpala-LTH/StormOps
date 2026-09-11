@@ -17,6 +17,7 @@ from app.api.saved_locations import router as saved_locations_router
 from app.api.speech import router as speech_router
 from app.api.weather import router as weather_router
 from app.api.environmental import router as environmental_router
+from app.api.diagnostics import router as diagnostics_router
 from app.core.config import settings
 
 logger = logging.getLogger("app.main")
@@ -72,6 +73,7 @@ app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(speech_router, prefix="/api/speech", tags=["speech"])
 app.include_router(weather_router, prefix="/api/weather", tags=["weather"])
 app.include_router(environmental_router, prefix="/api/environmental", tags=["environmental"])
+app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnostics"])
 
 
 @app.exception_handler(OperationalError)
