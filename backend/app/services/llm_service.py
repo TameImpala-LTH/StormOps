@@ -71,6 +71,21 @@ class LLMService:
                     payload["model"] = target_model
                     continue
 
+                if response.status_code == 429:
+                    groq_rate_headers = {
+                        "retry-after": response.headers.get("retry-after") or response.headers.get("Retry-After"),
+                        "x-ratelimit-limit-requests": response.headers.get("x-ratelimit-limit-requests"),
+                        "x-ratelimit-remaining-requests": response.headers.get("x-ratelimit-remaining-requests"),
+                        "x-ratelimit-reset-requests": response.headers.get("x-ratelimit-reset-requests"),
+                        "x-ratelimit-limit-tokens": response.headers.get("x-ratelimit-limit-tokens"),
+                        "x-ratelimit-remaining-tokens": response.headers.get("x-ratelimit-remaining-tokens"),
+                        "x-ratelimit-reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
+                    }
+                    logger.warning(
+                        f"Groq API HTTP 429 rate limit response received. Status: {response.status_code}, "
+                        f"Rate-limit headers: {groq_rate_headers}"
+                    )
+
                 if response.status_code == 503 and attempt == 0:
                     import asyncio
                     await asyncio.sleep(1.0)

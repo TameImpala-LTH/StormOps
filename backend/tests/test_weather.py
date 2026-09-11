@@ -364,3 +364,39 @@ async def test_weather_service_different_locations_cached_independently():
     # Fetch Delhi -> must trigger new HTTP GET
     await service.get_current_weather(28.6139, 77.2090)
     assert mock_client.get.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_weather_service_429_diagnostic_logging_and_no_secrets(caplog):
+    """Verify that HTTP 429 triggers diagnostic logging of status and rate limit headers, without leaking secrets."""
+    import logging
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+
+    resp_429 = MagicMock(spec=httpx.Response)
+    resp_429.status_code = 429
+    resp_429.headers = {
+        "Retry-After": "2",
+        "x-ratelimit-limit-hourly": "10000",
+        "x-ratelimit-remaining-hourly": "0",
+        "Authorization": "Bearer super-secret-token",
+        "apikey": "secret-api-key-12345",
+    }
+    resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Too Many Requests", request=None, response=resp_429)
+    mock_client.get.return_value = resp_429
+
+    service = WeatherService(client=mock_client, max_retries=0)
+
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(Exception):
+            await service.get_current_weather(22.5726, 88.3639)
+
+    # Check that diagnostic logging occurred
+    assert any("Open-Meteo HTTP 429" in record.message or "rate limited (HTTP 429)" in record.message for record in caplog.records)
+
+    # Verify rate limit headers were captured
+    log_text = " ".join(record.message for record in caplog.records)
+    assert "x-ratelimit-limit-hourly" in log_text or "Retry-After" in log_text
+
+    # CRITICAL: Verify secrets are NEVER leaked in logs
+    assert "super-secret-token" not in log_text
+    assert "secret-api-key-12345" not in log_text

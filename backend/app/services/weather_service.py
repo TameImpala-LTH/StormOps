@@ -156,8 +156,17 @@ class WeatherService:
 
                 # HTTP 429 Rate Limit Handling
                 if response.status_code == 429:
+                    retry_after = response.headers.get("retry-after") or response.headers.get("Retry-After")
+                    diag_headers = {
+                        k: v
+                        for k, v in response.headers.items()
+                        if any(sub in k.lower() for sub in ("rate", "limit", "retry", "remaining"))
+                    }
+                    logger.warning(
+                        f"Open-Meteo HTTP 429 rate limit response received. Status: {response.status_code}, "
+                        f"Retry-After: {retry_after}, Rate-limit headers: {diag_headers}"
+                    )
                     if attempt < self.max_retries:
-                        retry_after = response.headers.get("Retry-After")
                         delay = self.base_retry_delay * (2**attempt)
                         if retry_after:
                             try:
@@ -202,7 +211,16 @@ class WeatherService:
 
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 429:
-                    logger.error("Weather provider rate limited (HTTP 429)")
+                    retry_after = exc.response.headers.get("retry-after") or exc.response.headers.get("Retry-After")
+                    diag_headers = {
+                        k: v
+                        for k, v in exc.response.headers.items()
+                        if any(sub in k.lower() for sub in ("rate", "limit", "retry", "remaining"))
+                    }
+                    logger.error(
+                        f"Weather provider rate limited (HTTP 429). Status: {exc.response.status_code}, "
+                        f"Retry-After: {retry_after}, Rate-limit headers: {diag_headers}"
+                    )
                     raise HTTPException(
                         status_code=502,
                         detail="Weather provider returned HTTP error 429: Rate limit reached. Please try again in a few moments.",

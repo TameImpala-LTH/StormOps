@@ -274,3 +274,46 @@ def test_phase5_normal_weather_query_has_no_decision(mock_forecast, mock_current
     assert r.json()["decision"] is None
 
 
+@pytest.mark.asyncio
+async def test_llm_service_429_diagnostic_logging_and_no_secrets(caplog):
+    """Verify that Groq HTTP 429 triggers diagnostic logging of required rate limit headers without exposing API keys."""
+    import logging
+    import httpx
+    from unittest.mock import MagicMock
+
+    secret_key = "gsk_test_secret_key_abcdef123456"
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+
+    resp_429 = MagicMock(spec=httpx.Response)
+    resp_429.status_code = 429
+    resp_429.headers = {
+        "retry-after": "5",
+        "x-ratelimit-limit-requests": "14400",
+        "x-ratelimit-remaining-requests": "0",
+        "x-ratelimit-reset-requests": "1.2s",
+        "x-ratelimit-limit-tokens": "6000",
+        "x-ratelimit-remaining-tokens": "0",
+        "x-ratelimit-reset-tokens": "60s",
+        "Authorization": f"Bearer {secret_key}",
+    }
+    resp_429.raise_for_status.side_effect = httpx.HTTPStatusError("429 Too Many Requests", request=None, response=resp_429)
+    mock_client.post.return_value = resp_429
+
+    service = LLMService(api_key=secret_key, client=mock_client)
+
+    with caplog.at_level(logging.WARNING):
+        result = await service.extract_structured_intent("Will it rain tomorrow in Kolkata?")
+
+    assert result is None  # Deterministic fallback triggers
+
+    # Check diagnostic log
+    log_text = " ".join(record.message for record in caplog.records)
+    assert "Groq API HTTP 429 rate limit response received" in log_text
+    assert "x-ratelimit-remaining-requests" in log_text
+    assert "x-ratelimit-reset-tokens" in log_text
+
+    # CRITICAL: Secret API key and authorization tokens must NEVER be logged
+    assert secret_key not in log_text
+    assert "gsk_" not in log_text
+
+
