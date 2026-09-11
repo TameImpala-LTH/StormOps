@@ -308,7 +308,10 @@ async def test_llm_service_429_diagnostic_logging_and_no_secrets(caplog):
 
     # Check diagnostic log
     log_text = " ".join(record.message for record in caplog.records)
-    assert "Groq API HTTP 429 rate limit response received" in log_text
+    assert "Groq API HTTP 429 diagnostic:" in log_text
+    assert "status=429" in log_text
+    assert "model=" in log_text
+    assert "response_body=" in log_text
     assert "x-ratelimit-remaining-requests" in log_text
     assert "x-ratelimit-reset-tokens" in log_text
 
