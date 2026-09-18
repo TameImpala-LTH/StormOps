@@ -17,6 +17,7 @@ from app.api.saved_locations import router as saved_locations_router
 from app.api.speech import router as speech_router
 from app.api.weather import router as weather_router
 from app.api.environmental import router as environmental_router
+from app.api.advisory import router as advisory_router
 from app.api.diagnostics import router as diagnostics_router
 from app.core.config import settings
 
@@ -35,6 +36,12 @@ async def lifespan(app: FastAPI):
     print(msg, flush=True)
     logger.info(msg)
     yield
+    # Clean up persistent clients on shutdown
+    try:
+        from app.services.llm_service import llm_service
+        await llm_service.aclose()
+    except Exception as exc:
+        logger.debug(f"LLM client shutdown cleanup: {exc}")
 
 
 app = FastAPI(
@@ -72,6 +79,7 @@ app.include_router(saved_locations_router, prefix="/api/locations", tags=["saved
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(speech_router, prefix="/api/speech", tags=["speech"])
 app.include_router(weather_router, prefix="/api/weather", tags=["weather"])
+app.include_router(advisory_router, prefix="/api/weather", tags=["advisories"])
 app.include_router(environmental_router, prefix="/api/environmental", tags=["environmental"])
 app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnostics"])
 

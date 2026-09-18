@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 from pydantic import BaseModel, Field
 
+from app.schemas.advisory import AdvisoryResponse
 from app.schemas.alert import WeatherAlert
 from app.schemas.decision import DecisionResponse
 from app.schemas.event import EnvironmentalEvent
@@ -85,6 +86,7 @@ class QueryResponse(BaseModel):
     decision: Optional[DecisionResponse] = Field(None, description="Structured decision engine recommendation")
     alerts: Optional[List[WeatherAlert]] = Field(default_factory=list, description="Structured severe weather alerts or risk advisories")
     environmental_events: Optional[List[EnvironmentalEvent]] = Field(default_factory=list, description="Structured event-based environmental advisories")
+    official_advisories: Optional[List[AdvisoryResponse]] = Field(default_factory=list, description="Active official hazard advisories for resolved location")
     comparison: Optional[ComparisonResponse] = Field(None, description="Structured dual-location weather comparison if applicable")
     summary: str = Field(..., description="Grounded natural language interpretation or clarification request")
     needs_clarification: bool = Field(False, description="True if missing location or required information")

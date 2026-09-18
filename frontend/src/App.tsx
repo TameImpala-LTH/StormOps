@@ -1,14 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from './components/Header';
 import { QueryInput } from './components/QueryInput';
-import { WeatherAnswerSurface } from './components/WeatherAnswerSurface';
-import { ConversationThread } from './components/ConversationThread';
 import { LoadingState } from './components/LoadingState';
 import { ErrorState } from './components/ErrorState';
-import { Sidebar } from './components/sidebar/Sidebar';
-import { AuthModal } from './components/auth/AuthModal';
 import { PersonalizedGreeting } from './components/PersonalizedGreeting';
+
+const WeatherAnswerSurface = lazy(() =>
+  import('./components/WeatherAnswerSurface').then((m) => ({ default: m.WeatherAnswerSurface }))
+);
+const ConversationThread = lazy(() =>
+  import('./components/ConversationThread').then((m) => ({ default: m.ConversationThread }))
+);
+const Sidebar = lazy(() =>
+  import('./components/sidebar/Sidebar').then((m) => ({ default: m.Sidebar }))
+);
+const AuthModal = lazy(() =>
+  import('./components/auth/AuthModal').then((m) => ({ default: m.AuthModal }))
+);
 import { postWeatherQuery } from './services/weather';
 import { fetchConversationDetail } from './services/auth';
 import { CoordinateInput, GeocodedLocationSchema, LanguageCode, QueryResponse } from './types/weather';
@@ -198,23 +207,31 @@ function AppContent() {
       />
 
       {/* Sidebar Navigation Drawer */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onNewChat={handleReset}
-        onSelectConversation={handleSelectConversation}
-        onSelectSavedLocation={handleSelectSavedLocation}
-        onOpenAuthModal={handleOpenAuthModal}
-        activeConversationId={activeConversationId}
-        activeLocationName={activeLocation?.name}
-      />
+      {isSidebarOpen && (
+        <Suspense fallback={null}>
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            onNewChat={handleReset}
+            onSelectConversation={handleSelectConversation}
+            onSelectSavedLocation={handleSelectSavedLocation}
+            onOpenAuthModal={handleOpenAuthModal}
+            activeConversationId={activeConversationId}
+            activeLocationName={activeLocation?.name}
+          />
+        </Suspense>
+      )}
 
       {/* Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        initialMode={authModalMode}
-      />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            initialMode={authModalMode}
+          />
+        </Suspense>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12 flex flex-col items-center">
@@ -290,11 +307,13 @@ function AppContent() {
               transition={{ duration: 0.25 }}
               className="w-full"
             >
-              <ConversationThread
-                messages={restoredConversation.messages}
-                locationName={restoredConversation.location_name}
-                title={restoredConversation.title}
-              />
+              <Suspense fallback={null}>
+                <ConversationThread
+                  messages={restoredConversation.messages}
+                  locationName={restoredConversation.location_name}
+                  title={restoredConversation.title}
+                />
+              </Suspense>
             </motion.div>
           )}
 
@@ -308,13 +327,19 @@ function AppContent() {
               transition={{ duration: 0.3 }}
               className="w-full"
             >
-              <WeatherAnswerSurface
-                response={queryResponse}
-                onSelectPresetLocation={(cityName) =>
-                  handleQuerySubmit(`What's the weather in ${cityName}?`)
+              <Suspense
+                fallback={
+                  <LoadingState locationName={currentQuery || 'location'} />
                 }
-                onOpenAuthModal={handleOpenAuthModal}
-              />
+              >
+                <WeatherAnswerSurface
+                  response={queryResponse}
+                  onSelectPresetLocation={(cityName) =>
+                    handleQuerySubmit(`What's the weather in ${cityName}?`)
+                  }
+                  onOpenAuthModal={handleOpenAuthModal}
+                />
+              </Suspense>
             </motion.div>
           )}
         </AnimatePresence>

@@ -187,6 +187,7 @@ export interface QueryResponse {
   environmental_events?: EnvironmentalEvent[] | null;
   comparison?: ComparisonResponse | null;
   summary: string;
+  official_advisories?: import('./advisory').OfficialAdvisory[] | null;
   needs_clarification?: boolean;
   language?: 'en' | 'hi' | 'bn' | string;
   session_id?: string | null;
@@ -200,4 +201,7 @@ export interface PresetLocation {
   latitude: number;
   longitude: number;
 }
+
+export * from './advisory';
+
 

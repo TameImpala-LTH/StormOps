@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   CloudRain,
@@ -18,12 +18,27 @@ import {
   AlertTriangle,
   HelpCircle,
 } from 'lucide-react';
-import { QueryResponse, HourlyForecast } from '../types/weather';
+import { QueryResponse } from '../types/weather';
+import { OfficialAdvisory } from '../types/advisory';
+import { fetchOfficialAdvisories } from '../services/weather';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import { PRESET_LOCATIONS } from '../utils/locations';
-import { WeatherMap } from './WeatherMap';
 import { EnvironmentalEventIndicator } from './EnvironmentalEventIndicator';
-import { EnvironmentalEventPanel } from './EnvironmentalEventPanel';
+import { OfficialAdvisoryBanner } from './advisory/OfficialAdvisoryBanner';
+import { OfficialAdvisorySection } from './advisory/OfficialAdvisorySection';
+
+const WeatherMap = React.lazy(() =>
+  import('./WeatherMap').then((m) => ({ default: m.WeatherMap }))
+);
+const InteractiveForecastChart = React.lazy(() =>
+  import('./InteractiveForecastChart').then((m) => ({ default: m.InteractiveForecastChart }))
+);
+const ComparisonSurface = React.lazy(() =>
+  import('./ComparisonSurface').then((m) => ({ default: m.ComparisonSurface }))
+);
+const EnvironmentalEventPanel = React.lazy(() =>
+  import('./EnvironmentalEventPanel').then((m) => ({ default: m.EnvironmentalEventPanel }))
+);
 import { useAuth } from '../context/AuthContext';
 import { FormattedMarkdown } from './FormattedMarkdown';
 
@@ -97,215 +112,6 @@ function getRecommendationStyle(rec: string): { icon: React.ReactNode; bgColor: 
       };
   }
 }
-
-// Helper to format ISO or HH:MM string into 12-hour AM/PM label
-function formatHour12(isoOrTimeString: string): { label12: string; hour: number; full12: string } {
-  const timePart = isoOrTimeString.includes('T')
-    ? isoOrTimeString.split('T')[1].slice(0, 5)
-    : isoOrTimeString.slice(0, 5);
-  const parts = timePart.split(':');
-  const h = parseInt(parts[0], 10);
-  const m = parts[1] ?? '00';
-
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-
-  return {
-    label12: `${h12} ${ampm}`,
-    hour: h,
-    full12: `${h12}:${m} ${ampm}`,
-  };
-}
-
-// Continuous Interactive Forecast Chart (Pure SVG + React State)
-const InteractiveForecastChart: React.FC<{ items: HourlyForecast[]; periodTitle: string }> = ({ items, periodTitle }) => {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
-  if (!items || items.length === 0) return null;
-
-  const svgWidth = 640;
-  const svgHeight = 135;
-  const paddingX = 36;
-  const paddingTop = 36;
-  const paddingBottom = 30;
-
-  const temps = items.map((i) => Math.round(i.temperature));
-  const minTemp = Math.min(...temps);
-  const maxTemp = Math.max(...temps);
-  const tempRange = Math.max(1, maxTemp - minTemp);
-
-  const getX = (index: number) => {
-    if (items.length <= 1) return svgWidth / 2;
-    return paddingX + (index / (items.length - 1)) * (svgWidth - 2 * paddingX);
-  };
-
-  const getY = (temp: number) => {
-    const chartHeight = svgHeight - paddingTop - paddingBottom;
-    return paddingTop + chartHeight - ((temp - minTemp) / tempRange) * chartHeight;
-  };
-
-  const points = items.map((item, idx) => {
-    const timeFormatted = formatHour12(item.time);
-    return {
-      x: getX(idx),
-      y: getY(Math.round(item.temperature)),
-      temp: Math.round(item.temperature),
-      rawTime: item.time,
-      timeLabel12: timeFormatted.label12,
-      timeFull12: timeFormatted.full12,
-      hourNumber: timeFormatted.hour,
-      rainProb: item.precipitation_probability ?? 0,
-      condition: item.condition,
-      wind: item.wind_speed,
-      weatherCode: item.weather_code,
-    };
-  });
-
-  const activePoint = hoveredIdx !== null ? points[hoveredIdx] : null;
-
-  // Build SVG path string for temperature line
-  const linePath = points.reduce((acc, p, i) => {
-    return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
-  }, '');
-
-  return (
-    <div className="space-y-3 pt-4" style={{ borderTop: '1px solid var(--border-muted)' }}>
-      <div className="flex items-center justify-between text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-        <span className="flex items-center gap-1.5 font-medium">
-          24-HOUR FORECAST VISUALIZATION
-        </span>
-        <span className="uppercase tracking-wider">{periodTitle}</span>
-      </div>
-
-      {/* Interactive Tooltip Bar */}
-      <div
-        className="min-h-[36px] px-4 py-2 rounded-xl flex items-center justify-between text-xs transition-all"
-        style={{
-          backgroundColor: 'var(--surface-elevated)',
-          border: '1px solid var(--border-muted)',
-        }}
-      >
-        {activePoint ? (
-          <div className="w-full flex items-center justify-between">
-            <span className="font-mono font-semibold" style={{ color: 'var(--accent)' }}>
-              {activePoint.timeFull12}
-            </span>
-            <span className="flex items-center gap-1 font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {activePoint.temp}°C
-            </span>
-            <span className="capitalize text-zinc-400 font-normal">
-              {activePoint.condition}
-            </span>
-            <span className="font-mono text-sky-400 flex items-center gap-1">
-              <CloudRain className="w-3.5 h-3.5 inline" /> {activePoint.rainProb}% rain
-            </span>
-            <span className="font-mono text-zinc-400 flex items-center gap-1 hidden sm:inline">
-              <Wind className="w-3.5 h-3.5 inline" /> {activePoint.wind} km/h
-            </span>
-          </div>
-        ) : (
-          <span className="text-[11px] font-mono w-full text-center" style={{ color: 'var(--text-tertiary)' }}>
-            Hover or tap any forecast point to inspect hourly details
-          </span>
-        )}
-      </div>
-
-      {/* SVG Chart Container */}
-      <div className="w-full overflow-x-auto pb-1">
-        <div className="min-w-[500px] sm:min-w-full">
-          <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto overflow-visible">
-            {/* Background Rain Probability Bars */}
-            {points.map((p, idx) => {
-              const barHeight = (p.rainProb / 100) * 35;
-              const isHovered = hoveredIdx === idx;
-              return (
-                <rect
-                  key={`bar-${idx}`}
-                  x={p.x - 5}
-                  y={svgHeight - paddingBottom - barHeight}
-                  width={10}
-                  height={barHeight}
-                  rx={2}
-                  fill={p.rainProb >= 50 ? '#38bdf8' : 'rgba(52,211,153,0.50)'}
-                  opacity={isHovered ? 0.9 : 0.3}
-                />
-              );
-            })}
-
-            {/* Continuous Temperature Line */}
-            <path
-              d={linePath}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-
-            {/* Point Markers & Touch Targets */}
-            {points.map((p, idx) => {
-              const isHovered = hoveredIdx === idx;
-              // Evenly spaced primary axis labels every 3 hours (12 AM, 3 AM, 6 AM, 9 AM, 12 PM, 3 PM, 6 PM, 9 PM)
-              const showAxisLabel = p.hourNumber % 3 === 0;
-
-              return (
-                <g key={`pt-${idx}`} className="cursor-pointer">
-                  {/* Invisible enlarged hit area for touch/click */}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={14}
-                    fill="transparent"
-                    onMouseEnter={() => setHoveredIdx(idx)}
-                    onMouseLeave={() => setHoveredIdx(null)}
-                    onClick={() => setHoveredIdx(idx)}
-                  />
-
-                  {/* Temperature dot */}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={isHovered ? 6 : 3.5}
-                    fill={isHovered ? 'var(--accent)' : 'var(--surface)'}
-                    stroke="var(--accent)"
-                    strokeWidth={2}
-                    className="transition-all duration-150"
-                  />
-
-                  {/* Temperature text above point */}
-                  {(isHovered || showAxisLabel) && (
-                    <text
-                      x={p.x}
-                      y={p.y - 8}
-                      textAnchor="middle"
-                      className="text-[9px] font-mono font-semibold"
-                      fill={isHovered ? 'var(--accent)' : 'var(--text-primary)'}
-                    >
-                      {p.temp}°
-                    </text>
-                  )}
-
-                  {/* Hour text on X-axis */}
-                  {showAxisLabel && (
-                    <text
-                      x={p.x}
-                      y={svgHeight - 8}
-                      textAnchor="middle"
-                      className="text-[10px] font-mono font-medium"
-                      fill={isHovered ? 'var(--accent)' : 'var(--text-secondary)'}
-                    >
-                      {p.timeLabel12}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
@@ -382,7 +188,40 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
     comparison,
     summary,
     current,
+    official_advisories,
   } = response;
+
+  const [advisories, setAdvisories] = useState<OfficialAdvisory[]>(
+    official_advisories || []
+  );
+
+  // Fetch official advisories for location context when not provided directly in response
+  useEffect(() => {
+    if (official_advisories !== undefined && official_advisories !== null) {
+      setAdvisories(official_advisories);
+      return;
+    }
+    if (!location) {
+      setAdvisories([]);
+      return;
+    }
+
+    let isMounted = true;
+    fetchOfficialAdvisories({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      district: location.name,
+      state: location.admin1 ?? undefined,
+    }).then((fetched) => {
+      if (isMounted) {
+        setAdvisories(fetched);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location?.latitude, location?.longitude, location?.name, location?.admin1, official_advisories]);
 
   const isLocationSaved = Boolean(
     location &&
@@ -529,235 +368,6 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
             </div>
           );
         })}
-      </div>
-    );
-  };
-
-  // Render Location Comparison Surface (Section #2.5)
-  const renderComparisonSurface = () => {
-    if (!comparison) return null;
-    const compDec = comparison.decision;
-    const isWinnerA = compDec.recommended_key === 'a';
-    const isWinnerB = compDec.recommended_key === 'b';
-    const isSimilar = compDec.recommended_key === 'equal';
-
-    return (
-      <div className="space-y-6 pt-2">
-        {/* Comparison Recommendation Hero Box */}
-        <div
-          className="p-5 rounded-3xl border space-y-4 shadow-sm"
-          style={{
-            backgroundColor: 'var(--surface-elevated)',
-            borderColor: 'var(--border)',
-          }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b" style={{ borderColor: 'var(--border-muted)' }}>
-            <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
-                WeatherGPT Location Comparison ({comparison.comparison_goal.replace(/_/g, ' ')})
-              </span>
-              <h3 className="text-xl sm:text-2xl font-light tracking-tight flex items-center gap-2 mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                {comparison.location_a.name} <span className="text-xs font-mono text-zinc-500">VS</span> {comparison.location_b.name}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span
-                className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border"
-                style={{
-                  backgroundColor: isSimilar ? 'rgba(217,119,6,0.12)' : 'rgba(16,185,129,0.12)',
-                  borderColor: isSimilar ? 'rgba(217,119,6,0.30)' : 'rgba(16,185,129,0.30)',
-                  color: isSimilar ? '#fbbf24' : '#34d399',
-                }}
-              >
-                {compDec.recommended_location}
-              </span>
-              <span
-                className="text-[10px] font-mono uppercase px-2 py-0.5 rounded"
-                style={{
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-muted)',
-                }}
-              >
-                {compDec.confidence} confidence
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {compDec.summary}
-            </p>
-            <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-              Reason: {compDec.winner_reason}
-            </p>
-          </div>
-        </div>
-
-        {/* Side-by-Side Location Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Location A Card */}
-          <div
-            className={`p-5 rounded-2xl border space-y-4 relative transition-all ${isWinnerA ? 'ring-2 ring-emerald-500/50' : ''}`}
-            style={{
-              backgroundColor: 'var(--surface-elevated)',
-              borderColor: isWinnerA ? 'rgba(16,185,129,0.4)' : 'var(--border-muted)',
-            }}
-          >
-            {isWinnerA && (
-              <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                Recommended Winner
-              </div>
-            )}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span>LOCATION A</span>
-              </div>
-              <h4 className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
-                {comparison.location_a.name}, {comparison.location_a.country}
-              </h4>
-            </div>
-
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-extralight" style={{ color: 'var(--text-primary)' }}>
-                {Math.round(comparison.period_weather_a.temperature)}°C
-              </span>
-              <div className="text-xs">
-                <span className="capitalize block font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {comparison.period_weather_a.condition}
-                </span>
-                <span className="font-mono text-zinc-400 block">
-                  Feels like {Math.round(comparison.period_weather_a.feels_like)}°C
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-2 border-t" style={{ borderColor: 'var(--border-muted)' }}>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">RAIN CHANCE</span>
-                <span className="font-semibold text-sky-400">{comparison.period_weather_a.precipitation_probability}%</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">PRECIPITATION</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_a.precipitation} mm</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">WIND SPEED</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_a.wind_speed} km/h</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">HUMIDITY</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_a.humidity}%</span>
-              </div>
-            </div>
-
-            {comparison.alerts_a && comparison.alerts_a.length > 0 && (
-              <div className="pt-2">
-                {comparison.alerts_a.map((a) => (
-                  <div key={a.id} className="p-2 rounded-xl text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{a.title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Location B Card */}
-          <div
-            className={`p-5 rounded-2xl border space-y-4 relative transition-all ${isWinnerB ? 'ring-2 ring-emerald-500/50' : ''}`}
-            style={{
-              backgroundColor: 'var(--surface-elevated)',
-              borderColor: isWinnerB ? 'rgba(16,185,129,0.4)' : 'var(--border-muted)',
-            }}
-          >
-            {isWinnerB && (
-              <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                Recommended Winner
-              </div>
-            )}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
-                <MapPin className="w-3.5 h-3.5 text-sky-400" />
-                <span>LOCATION B</span>
-              </div>
-              <h4 className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
-                {comparison.location_b.name}, {comparison.location_b.country}
-              </h4>
-            </div>
-
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-extralight" style={{ color: 'var(--text-primary)' }}>
-                {Math.round(comparison.period_weather_b.temperature)}°C
-              </span>
-              <div className="text-xs">
-                <span className="capitalize block font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {comparison.period_weather_b.condition}
-                </span>
-                <span className="font-mono text-zinc-400 block">
-                  Feels like {Math.round(comparison.period_weather_b.feels_like)}°C
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-2 border-t" style={{ borderColor: 'var(--border-muted)' }}>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">RAIN CHANCE</span>
-                <span className="font-semibold text-sky-400">{comparison.period_weather_b.precipitation_probability}%</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">PRECIPITATION</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_b.precipitation} mm</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">WIND SPEED</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_b.wind_speed} km/h</span>
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">HUMIDITY</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{comparison.period_weather_b.humidity}%</span>
-              </div>
-            </div>
-
-            {comparison.alerts_b && comparison.alerts_b.length > 0 && (
-              <div className="pt-2">
-                {comparison.alerts_b.map((a) => (
-                  <div key={a.id} className="p-2 rounded-xl text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{a.title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Metric Comparison Table */}
-        {compDec.factors && compDec.factors.length > 0 && (
-          <div className="p-4 rounded-2xl border space-y-3" style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-muted)' }}>
-            <div className="text-xs font-mono uppercase tracking-wider text-zinc-400">
-              Metric Comparison Factors
-            </div>
-            <div className="space-y-2">
-              {compDec.factors.map((f, idx) => (
-                <div key={idx} className="p-2.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-muted)' }}>
-                  <div className="flex items-center gap-2 font-mono">
-                    <span className="capitalize font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {f.metric.replace(/_/g, ' ')}
-                    </span>
-                    <span className="text-zinc-400">
-                      ({f.value_a} vs {f.value_b})
-                    </span>
-                  </div>
-                  <span className="text-xs text-zinc-300 font-medium">
-                    {f.impact_note}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -926,9 +536,10 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
                 />
               </button>
             )}
-            {environmental_events && environmental_events.length > 0 && (
+            {((environmental_events && environmental_events.length > 0) || advisories.length > 0) && (
               <EnvironmentalEventIndicator
-                events={environmental_events}
+                events={environmental_events || []}
+                advisories={advisories}
                 isOpen={isEnvPanelOpen}
                 onToggle={() => setIsEnvPanelOpen((prev) => !prev)}
               />
@@ -946,14 +557,21 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
         </div>
       </motion.div>
 
-      {/* Environmental Event Outlook Panel (Toggled by Bell Indicator) */}
-      {environmental_events && environmental_events.length > 0 && (
-        <EnvironmentalEventPanel
-          events={environmental_events}
-          isOpen={isEnvPanelOpen}
-          onClose={() => setIsEnvPanelOpen(false)}
-        />
+      {/* Environmental Intelligence Panel (Toggled by Indicator) */}
+      {((environmental_events && environmental_events.length > 0) || advisories.length > 0) && isEnvPanelOpen && (
+        <React.Suspense fallback={null}>
+          <EnvironmentalEventPanel
+            events={environmental_events || []}
+            advisories={advisories}
+            isOpen={isEnvPanelOpen}
+            onClose={() => setIsEnvPanelOpen(false)}
+            locationName={location?.name ?? undefined}
+          />
+        </React.Suspense>
       )}
+
+      {/* Official Severe Weather Advisory Banner (Active Orange or Red only) */}
+      <OfficialAdvisoryBanner advisories={advisories} />
 
 
       {/* 2. WeatherGPT Answer (Placed IMMEDIATELY after Location & Period Header) */}
@@ -990,7 +608,22 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
       {/* 4. Hero Weather / Comparison Surface */}
       {comparison ? (
         <motion.div variants={itemVariants}>
-          {renderComparisonSurface()}
+          <React.Suspense
+            fallback={
+              <div
+                className="p-6 rounded-3xl animate-pulse space-y-4"
+                style={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border)' }}
+              >
+                <div className="h-5 w-48 bg-slate-700/30 rounded" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="h-36 bg-slate-700/20 rounded-2xl" />
+                  <div className="h-36 bg-slate-700/20 rounded-2xl" />
+                </div>
+              </div>
+            }
+          >
+            <ComparisonSurface comparison={comparison} />
+          </React.Suspense>
         </motion.div>
       ) : (
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -1144,25 +777,70 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
       {/* 6. Target Period Forecast Visualization */}
       {!comparison && (
         <motion.div variants={itemVariants}>
-          <InteractiveForecastChart items={forecastItems} periodTitle={periodTitle} />
+          <React.Suspense
+            fallback={
+              <div
+                className="p-6 rounded-3xl animate-pulse space-y-4"
+                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+              >
+                <div className="h-4 w-36 bg-slate-700/30 rounded" />
+                <div className="h-44 bg-slate-700/20 rounded-2xl" />
+              </div>
+            }
+          >
+            <InteractiveForecastChart
+              items={forecastItems}
+              periodTitle={periodTitle}
+              timezone={location?.timezone ?? null}
+            />
+          </React.Suspense>
+        </motion.div>
+      )}
+
+      {/* Official Environmental & Hazard Advisories (When present) */}
+      {advisories && advisories.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <OfficialAdvisorySection
+            advisories={advisories}
+            locationName={location?.name ?? undefined}
+            showEmptyState={false}
+          />
         </motion.div>
       )}
 
       {/* 7. Interactive Weather Map */}
       {location && (
         <motion.div variants={itemVariants}>
-          <WeatherMap
-            location={comparison ? comparison.location_a : location}
-            weather={comparison ? comparison.period_weather_a : weather}
-            locationB={comparison?.location_b}
-            weatherB={comparison?.period_weather_b}
-            periodLabel={periodTitle}
-            onCheckWeatherAtCoords={(lat, lng) => {
-              if (onSelectPresetLocation) {
-                onSelectPresetLocation(`${lat}, ${lng}`);
-              }
-            }}
-          />
+          <React.Suspense
+            fallback={
+              <div
+                className="h-80 rounded-3xl flex flex-col items-center justify-center animate-pulse space-y-3"
+                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+              >
+                <div
+                  className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+                  style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+                />
+                <div className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                  Loading interactive weather map...
+                </div>
+              </div>
+            }
+          >
+            <WeatherMap
+              location={comparison ? comparison.location_a : location}
+              weather={comparison ? comparison.period_weather_a : weather}
+              locationB={comparison?.location_b}
+              weatherB={comparison?.period_weather_b}
+              periodLabel={periodTitle}
+              advisories={advisories}
+              onCheckWeatherAtCoords={(lat, lng) => {
+                if (onSelectPresetLocation) {
+                  onSelectPresetLocation(`${lat}, ${lng}`);
+                }
+              }}
+            />
+          </React.Suspense>
         </motion.div>
       )}
     </motion.div>

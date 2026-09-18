@@ -26,6 +26,40 @@ class LLMService:
         self.model = model or settings.ai_model or "openai/gpt-oss-120b"
         self.api_base = (api_base or settings.ai_api_base or "https://api.openai.com/v1").rstrip("/")
         self._client = client
+        self._persistent_client: Optional[httpx.AsyncClient] = None
+        self._persistent_loop = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        """Return injected client or event-loop-safe persistent client with HTTP connection pooling."""
+        if self._client is not None:
+            is_closed = getattr(self._client, "is_closed", False)
+            if not (isinstance(is_closed, bool) and is_closed):
+                return self._client
+
+        import asyncio
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if (
+            self._persistent_client is not None
+            and not self._persistent_client.is_closed
+            and self._persistent_loop is current_loop
+        ):
+            return self._persistent_client
+
+        limits = httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0)
+        self._persistent_client = httpx.AsyncClient(limits=limits)
+        self._persistent_loop = current_loop
+        return self._persistent_client
+
+    async def aclose(self):
+        """Close persistent HTTP client."""
+        if self._persistent_client is not None and not self._persistent_client.is_closed:
+            await self._persistent_client.aclose()
+            self._persistent_client = None
+            self._persistent_loop = None
 
     @property
     def is_configured(self) -> bool:
@@ -33,7 +67,11 @@ class LLMService:
         return bool(self.api_key and self.api_key.strip())
 
     async def _post_chat_completion(
-        self, messages: list, temperature: float = 0.2, response_format: Optional[dict] = None
+        self,
+        messages: list,
+        temperature: float = 0.2,
+        response_format: Optional[dict] = None,
+        max_tokens: Optional[int] = None,
     ) -> Optional[str]:
         """Internal helper to post chat completion to OpenAI-compatible LLM endpoint."""
         if not self.is_configured:
@@ -53,16 +91,15 @@ class LLMService:
         }
         if response_format:
             payload["response_format"] = response_format
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
 
         timeout = httpx.Timeout(25.0, connect=6.0)
 
         for attempt in range(2):
             try:
-                if self._client:
-                    response = await self._client.post(url, json=payload, headers=headers, timeout=timeout)
-                else:
-                    async with httpx.AsyncClient() as client:
-                        response = await client.post(url, json=payload, headers=headers, timeout=timeout)
+                client = self._get_client()
+                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
 
                 # If requested model was decommissioned or not found on Groq, fallback to active Groq OSS model
                 if response.status_code in (400, 404, 413) and "groq" in self.api_base and target_model != "openai/gpt-oss-120b":
@@ -148,6 +185,7 @@ class LLMService:
             messages=messages,
             temperature=0.0,
             response_format={"type": "json_object"},
+            max_tokens=300,
         )
 
         if not raw_response:
@@ -242,7 +280,7 @@ class LLMService:
             {"role": "user", "content": json.dumps(content_payload)},
         ]
 
-        return await self._post_chat_completion(messages=messages, temperature=0.3)
+        return await self._post_chat_completion(messages=messages, temperature=0.3, max_tokens=450)
 
     async def generate_ai_explanation(
         self,
@@ -293,7 +331,7 @@ class LLMService:
             {"role": "user", "content": json.dumps(content_payload)},
         ]
 
-        return await self._post_chat_completion(messages=messages, temperature=0.2)
+        return await self._post_chat_completion(messages=messages, temperature=0.2, max_tokens=450)
 
     async def generate_comparison_explanation(
         self,
@@ -346,8 +384,7 @@ class LLMService:
             {"role": "user", "content": json.dumps(content_payload)},
         ]
 
-        return await self._post_chat_completion(messages=messages, temperature=0.2)
+        return await self._post_chat_completion(messages=messages, temperature=0.2, max_tokens=450)
 
 
 llm_service = LLMService()
-

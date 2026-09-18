@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
+    # Official Environmental Advisory Ingestion Configuration
+    advisory_enabled: bool = True
+    advisory_sachet_feed_url: str = "https://sachet.ndma.gov.in/cap/rss"
+    advisory_imd_api_url: str = "https://api.imd.gov.in/v1"
+    advisory_imd_api_key: str = ""
+    advisory_cpcb_api_url: str = "https://app.cpcbccr.com/caaqm"
+    advisory_incois_api_url: str = "https://incois.gov.in/portal/osf"
+    advisory_ingestion_interval_seconds: int = 900  # 15 minutes default
+    advisory_ingest_secret: str = ""  # Secret token required to trigger ingestion in production
+
     model_config = {
         "env_file": (
             str(Path(__file__).resolve().parent.parent.parent.parent / ".env"),  # C:\StormOps\.env

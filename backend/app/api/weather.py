@@ -1,8 +1,10 @@
 """Weather API routes for current conditions, forecast retrieval, and natural language query processing."""
 
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db
 from app.schemas.event import EnvironmentalEvent
 from app.schemas.query import QueryRequest, QueryResponse
 from app.schemas.weather import CurrentWeatherResponse, ForecastResponse
@@ -54,10 +56,35 @@ async def get_weather_forecast(
 
 
 @router.post("/query", response_model=QueryResponse)
-async def process_natural_language_query(request: QueryRequest):
+async def process_natural_language_query(
+    request: QueryRequest,
+    db: Session = Depends(get_db),
+):
     """Process natural language weather query with entity extraction, session context, geocoding, weather retrieval, and summary."""
     sess_id = request.session_id or "default"
-    return await query_service.process_query(request.message, session_id=sess_id)
+    response = await query_service.process_query(
+        request.message,
+        session_id=sess_id,
+        device_location=request.location,
+        language=request.language,
+    )
+    if response.location and db is not None:
+        try:
+            from app.schemas.advisory import AdvisoryQueryFilter
+            from app.services.advisory_service import advisory_service
+            adv_filters = AdvisoryQueryFilter(
+                district=response.location.name,
+                state=response.location.admin1,
+                latitude=response.location.latitude,
+                longitude=response.location.longitude,
+                include_expired=False,
+            )
+            response.official_advisories = advisory_service.get_advisories(db=db, filter_params=adv_filters)
+        except Exception:
+            response.official_advisories = []
+    else:
+        response.official_advisories = []
+    return response
 
 
 @router.get("/events", response_model=List[EnvironmentalEvent])

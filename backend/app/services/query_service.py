@@ -1,5 +1,6 @@
 """Query understanding, entity extraction, session context, and orchestration service."""
 
+import asyncio
 from datetime import datetime, timezone
 import re
 from typing import Any, Dict, Optional
@@ -27,6 +28,8 @@ INVALID_LOCATIONS = {
     "where", "place", "has", "less", "more", "rain", "cooler", "warmer", "colder", "hotter", "temperature",
     "weekend", "saturday", "sunday", "go", "my location", "my", "location", "current location", "my current location",
     "on my exact location", "my exact location", "exact location", "me", "here",
+    "wind", "winds", "breeze", "humidity", "cloud", "clouds", "sun", "sunny", "storm", "chilly", "warm",
+    "degrees", "celsius", "forecast", "conditions", "weather", "mausam", "kaisa", "kaisi", "kaise", "hai", "hain", "mein",
     # Hindi stop words
     "आज", "कल", "रात", "सुबह", "दोपहर", "शाम", "बारिश", "छाता", "कपड़े", "मौसम", "क्या", "कहाँ", "कहा", "यहाँ",
     "वहाँ", "मेरा", "मेरी", "स्थान", "शहर", "ठंडा", "गर्म", "तुलना", "जाना", "घूमना", "वेदर", "होगी", "होगा", "होने",
@@ -230,6 +233,17 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
                 extracted_location = candidate
 
     if not extracted_location:
+        post_matches = re.findall(
+            r"\b([A-Za-z\u0900-\u09FF\.\-']+)\s+(?:mein|me|में|এ|তে)\b",
+            text,
+            re.IGNORECASE,
+        )
+        if post_matches:
+            candidate = clean_loc(post_matches[-1].strip())
+            if candidate and candidate.lower() not in INVALID_LOCATIONS:
+                extracted_location = candidate
+
+    if not extracted_location:
         secondary_matches = list(
             re.finditer(
                 r"\b(for|to)\s+([A-Za-z\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon)|[\?\!\.\,]|\s*$)",
@@ -256,7 +270,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
 
     if not extracted_location:
         cleaned = re.sub(
-            r"\b(what's|whats|what|will|is|it|the|weather|like|how|hot|cold|should|i|carry|an|umbrella|rain|be|in|at|for|near|to|about|and|or|then|there|today|tomorrow|tonight|this|evening|morning|afternoon|now|right|why|explain|reason|wear|clothes|jacket|coat|pack|dress|bring|take|\?)\b",
+            r"\b(what's|whats|what|will|is|it|the|weather|like|how|hot|cold|should|i|carry|an|umbrella|rain|be|in|at|for|near|to|about|and|or|then|there|today|tomorrow|tonight|this|evening|morning|afternoon|now|right|why|explain|reason|wear|clothes|jacket|coat|pack|dress|bring|take|wind|winds|breeze|humidity|cloud|clouds|mausam|kaisa|kaisi|kaise|hai|hain|mein|\?)\b",
             "",
             lower_text,
             flags=re.IGNORECASE,
@@ -288,6 +302,59 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
 
 # Alias for backward compatibility
 extract_query_entities = extract_query_entities_rule_based
+
+
+def is_high_confidence_extraction(
+    rule_info: ExtractedQueryInfo,
+    query_text: str,
+    session_data: Dict[str, Any],
+    has_device_location: bool,
+) -> bool:
+    """
+    Determine if deterministic rule-based entity extraction is high-confidence,
+    allowing the system to skip the costly (~1.5s) LLM intent extraction call.
+    """
+    clean_text = query_text.strip().lower()
+
+    # Rule 1: Explicit comparison query with two valid, distinct locations
+    if rule_info.intent == "comparison":
+        if (
+            rule_info.extracted_location_a
+            and rule_info.extracted_location_b
+            and rule_info.extracted_location_a.lower() not in INVALID_LOCATIONS
+            and rule_info.extracted_location_b.lower() not in INVALID_LOCATIONS
+            and rule_info.extracted_location_a.lower() != rule_info.extracted_location_b.lower()
+        ):
+            return True
+        return False
+
+    # Rule 2: Query with explicit device GPS coordinates
+    if has_device_location:
+        return True
+
+    # Rule 3: Single location explicitly extracted and validated
+    if (
+        rule_info.extracted_location
+        and rule_info.extracted_location.lower() not in INVALID_LOCATIONS
+        and len(rule_info.extracted_location.strip()) >= 2
+    ):
+        return True
+
+    # Rule 4: Contextual follow-up query relying on active session location
+    has_session_loc = bool(session_data.get("location"))
+    if has_session_loc and not rule_info.extracted_location:
+        followup_signals = [
+            "what about", "how about", "and ", "why", "explain", "temperature",
+            "temp", "rain", "wind", "humidity", "weather", "forecast", "chata",
+            "baarish", "garmi", "thanda", "umbrella", "clothes", "jacket",
+            "outside", "outdoor", "travel", "drive", "safe", "will it", "is it",
+            "how is", "what is", "kaisa", "kaisi", "kaise", "thik", "theek"
+        ]
+        if any(sig in clean_text for sig in followup_signals) or rule_info.intent != "weather_information":
+            return True
+
+    # Ambiguous, missing location, or unclear structure -> fallback to LLM intent extraction
+    return False
 
 
 def generate_grounded_summary_template(
@@ -419,10 +486,19 @@ class QueryService:
             SESSION_CONTEXT[sess_key] = {}
         SESSION_CONTEXT[sess_key]["language"] = active_lang
 
-        # Step 1: Entity & Intent Extraction (LLM first, Rule fallback)
-        query_info = await llm_service.extract_structured_intent(query_text, language_hint=active_lang)
-        if not query_info:
-            query_info = extract_query_entities_rule_based(query_text, language_hint=active_lang)
+        # Step 1: Entity & Intent Extraction (Fast-Path Rule-Based when High Confidence, else LLM with Rule Fallback)
+        rule_info = extract_query_entities_rule_based(query_text, language_hint=active_lang)
+        has_device_loc = bool(
+            device_location
+            and getattr(device_location, "latitude", None) is not None
+            and getattr(device_location, "longitude", None) is not None
+        )
+        if is_high_confidence_extraction(rule_info, query_text, session_data, has_device_loc):
+            query_info = rule_info
+        else:
+            query_info = await llm_service.extract_structured_intent(query_text, language_hint=active_lang)
+            if not query_info:
+                query_info = rule_info
 
         query_info.language = active_lang
         query_info.extracted_location = multilingual_service.canonicalize_known_location(query_info.extracted_location)
@@ -502,10 +578,14 @@ class QueryService:
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
 
-            # Geocode both locations
-            try:
-                loc_a_geo = await geocoding_service.geocode_location(loc_a_name)
-            except HTTPException:
+            # Geocode both locations concurrently
+            res_a, res_b = await asyncio.gather(
+                geocoding_service.geocode_location(loc_a_name),
+                geocoding_service.geocode_location(loc_b_name),
+                return_exceptions=True,
+            )
+
+            if isinstance(res_a, HTTPException):
                 return QueryResponse(
                     query=query_info,
                     location=None,
@@ -520,10 +600,11 @@ class QueryService:
                     session_id=sess_key,
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
+            if isinstance(res_a, Exception):
+                raise res_a
+            loc_a_geo = res_a
 
-            try:
-                loc_b_geo = await geocoding_service.geocode_location(loc_b_name)
-            except HTTPException:
+            if isinstance(res_b, HTTPException):
                 return QueryResponse(
                     query=query_info,
                     location=loc_a_geo,
@@ -538,6 +619,9 @@ class QueryService:
                     session_id=sess_key,
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
+            if isinstance(res_b, Exception):
+                raise res_b
+            loc_b_geo = res_b
 
             if not loc_a_geo or not loc_b_geo:
                 unresolved = loc_a_name if not loc_a_geo else loc_b_name
@@ -556,11 +640,14 @@ class QueryService:
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
 
-            # Fetch weather for Location A and Location B (168 hours = 7 days) via unified bundle (1 request per location)
-            try:
-                current_a, forecast_a = await weather_service.get_weather_bundle(loc_a_geo.latitude, loc_a_geo.longitude, hours=168)
-                current_b, forecast_b = await weather_service.get_weather_bundle(loc_b_geo.latitude, loc_b_geo.longitude, hours=168)
-            except HTTPException:
+            # Fetch weather for Location A and Location B concurrently (168 hours = 7 days)
+            res_bundle_a, res_bundle_b = await asyncio.gather(
+                weather_service.get_weather_bundle(loc_a_geo.latitude, loc_a_geo.longitude, hours=168),
+                weather_service.get_weather_bundle(loc_b_geo.latitude, loc_b_geo.longitude, hours=168),
+                return_exceptions=True,
+            )
+
+            if isinstance(res_bundle_a, Exception) or isinstance(res_bundle_b, Exception):
                 return QueryResponse(
                     query=query_info,
                     location=loc_a_geo,
@@ -577,6 +664,9 @@ class QueryService:
                     session_id=sess_key,
                     timestamp=datetime.now(timezone.utc).isoformat(),
                 )
+
+            current_a, forecast_a = res_bundle_a
+            current_b, forecast_b = res_bundle_b
 
             loc_a_display = f"{loc_a_geo.name}, {loc_a_geo.country}" if loc_a_geo.country else loc_a_geo.name
             loc_b_display = f"{loc_b_geo.name}, {loc_b_geo.country}" if loc_b_geo.country else loc_b_geo.name

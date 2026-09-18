@@ -50,15 +50,25 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
             return;
           }
 
-          // Fetch current weather at device coordinates (fail-safe)
+          // Concurrently fetch current weather and reverse geocode with timeout
+          const nomController = new AbortController();
+          const nomTimeout = setTimeout(() => nomController.abort(), 2500);
+
+          const [weatherRes, nomRes] = await Promise.allSettled([
+            fetchCurrentWeather(lat, lon),
+            fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16`,
+              { signal: nomController.signal }
+            ).then((r) => (r.ok ? r.json() : null)),
+          ]);
+          clearTimeout(nomTimeout);
+
           let weatherData: any = null;
-          try {
-            weatherData = await fetchCurrentWeather(lat, lon);
+          if (weatherRes.status === 'fulfilled') {
+            weatherData = weatherRes.value;
             if (typeof weatherData?.current?.temperature === 'number') {
               setDeviceTemperature(weatherData.current.temperature);
             }
-          } catch {
-            // Weather fetch failed, but proceed with reverse geocoding to resolve location name
           }
           lastFetchRef.current = { lat, lon, timestamp: now };
 
@@ -67,40 +77,33 @@ export const DeviceLocationProvider: React.FC<{ children: React.ReactNode }> = (
           let country = 'India';
           let admin1: string | undefined = undefined;
 
-          try {
-            const nomRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16`
-            );
-            if (nomRes.ok) {
-              const data = await nomRes.json();
-              const addr = data.address || {};
-              const locality =
-                addr.suburb ||
-                addr.neighbourhood ||
-                addr.quarter ||
-                addr.city_district ||
-                addr.residential ||
-                addr.village ||
-                addr.hamlet;
-              const city =
-                addr.city ||
-                addr.town ||
-                addr.municipality ||
-                addr.county ||
-                addr.state_district;
-              country = addr.country || country;
-              admin1 = addr.state;
+          if (nomRes.status === 'fulfilled' && nomRes.value) {
+            const data = nomRes.value;
+            const addr = data.address || {};
+            const locality =
+              addr.suburb ||
+              addr.neighbourhood ||
+              addr.quarter ||
+              addr.city_district ||
+              addr.residential ||
+              addr.village ||
+              addr.hamlet;
+            const city =
+              addr.city ||
+              addr.town ||
+              addr.municipality ||
+              addr.county ||
+              addr.state_district;
+            country = addr.country || country;
+            admin1 = addr.state;
 
-              if (locality && city && locality.toLowerCase() !== city.toLowerCase()) {
-                locationName = `${locality}, ${city}`;
-              } else if (locality) {
-                locationName = locality;
-              } else if (city) {
-                locationName = city;
-              }
+            if (locality && city && locality.toLowerCase() !== city.toLowerCase()) {
+              locationName = `${locality}, ${city}`;
+            } else if (locality) {
+              locationName = locality;
+            } else if (city) {
+              locationName = city;
             }
-          } catch {
-            // Use fallback name if reverse geocoding fails
           }
 
           const devLoc: GeocodedLocationSchema = {

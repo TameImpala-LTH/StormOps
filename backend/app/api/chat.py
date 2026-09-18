@@ -85,6 +85,25 @@ async def chat_query(
         language=request.language,
     )
 
+    # Attach official hazard advisories if location is resolved (non-blocking, fail-safe)
+    if response.location and db is not None:
+        try:
+            from app.schemas.advisory import AdvisoryQueryFilter
+            from app.services.advisory_service import advisory_service
+            adv_filters = AdvisoryQueryFilter(
+                district=response.location.name,
+                state=response.location.admin1,
+                latitude=response.location.latitude,
+                longitude=response.location.longitude,
+                include_expired=False,
+            )
+            response.official_advisories = advisory_service.get_advisories(db=db, filter_params=adv_filters)
+        except Exception as e:
+            logger.debug(f"Advisory lookup during chat query failed gracefully: {e}")
+            response.official_advisories = []
+    else:
+        response.official_advisories = []
+
     # If authenticated, persist conversation and message records
     if current_user:
         try:

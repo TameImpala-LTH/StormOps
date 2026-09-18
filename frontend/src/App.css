@@ -30,10 +30,11 @@
 */
 
 /* ===========================================================================
-   DARK MODE (pitch-black background with cool electric blue accent)
+   DARK MODE — ATHERIS (Default: pitch black + cool electric sky blue accent)
    =========================================================================== */
 html,
-html.theme-dark {
+html.theme-dark,
+html.theme-dark.variant-atheris {
   --bg:               #000000;   /* pitch black */
   --surface:          #0f0f11;   /* elevated dark zinc surface */
   --surface-elevated: #18181b;   /* elevated surface for inputs/cards */
@@ -66,6 +67,25 @@ html.theme-dark {
   --selection-bg:     rgba(56,189,248,0.22);
   --selection-text:   #bae6fd;
 }
+
+/* ===========================================================================
+   DARK MODE — VANDAL (Pitch black + crisp neon red accent)
+   Surfaces, typography, backgrounds, and layout remain strictly identical to Atheris.
+   Accent transitions to vibrant neon red.
+   =========================================================================== */
+html.theme-dark.variant-vandal {
+  --border-header:    rgba(255,42,85,0.22);
+  --accent:           #ff2a55;   /* crisp neon red */
+  --accent-muted:     rgba(255,42,85,0.12);
+  --accent-border:    rgba(255,42,85,0.28);
+  --accent-text:      #ff3366;
+  --icon-border:      rgba(255,42,85,0.28);
+  --spinner-track:    rgba(255,42,85,0.20);
+  --spinner-head:     #ff2a55;
+  --selection-bg:     rgba(255,42,85,0.24);
+  --selection-text:   #ffe4e9;
+}
+
 
 /* ===========================================================================
    LIGHT MODE — warm neutral daylight
@@ -292,4 +312,30 @@ body {
 
 .leaflet-control-attribution a {
   color: var(--text-secondary) !important;
+}
+
+/* StormOps Official Advisory Map Layer Styles */
+.leaflet-tooltip.stormops-advisory-tooltip {
+  background-color: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.625rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  padding: 0.5rem 0.75rem !important;
+  font-family: inherit !important;
+  pointer-events: none !important;
+}
+
+.leaflet-tooltip.stormops-advisory-tooltip::before {
+  border-top-color: var(--border) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.leaflet-popup.stormops-advisory-popup .leaflet-popup-content-wrapper {
+  background-color: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.875rem !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
+  padding: 0.35rem !important;
 }

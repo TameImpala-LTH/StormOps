@@ -1,60 +1,107 @@
 import React from 'react';
-import { Bell, BellRing } from 'lucide-react';
+import { Bell, BellRing, ShieldAlert } from 'lucide-react';
 import { EnvironmentalEvent } from '../types/weather';
+import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
 
 interface EnvironmentalEventIndicatorProps {
-  events: EnvironmentalEvent[];
+  events?: EnvironmentalEvent[];
+  advisories?: OfficialAdvisory[];
   isOpen: boolean;
   onToggle: () => void;
 }
 
 export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorProps> = ({
-  events,
+  events = [],
+  advisories = [],
   isOpen,
   onToggle,
 }) => {
-  if (!events || events.length === 0) return null;
+  const eventCount = events.length;
+  // Exclude expired advisories from indicator count
+  const unexpiredAdvisories = advisories.filter((a) => getAdvisoryTemporalState(a) !== 'EXPIRED');
+  const advisoryCount = unexpiredAdvisories.length;
+  const totalCount = eventCount + advisoryCount;
 
-  const count = events.length;
+  if (totalCount === 0) return null;
 
-  // Phase 10B: Use BellRing with a subtle pulse when all events are upcoming.
-  // Use static Bell when any event is currently active.
+  // Check for severe official advisories (Red or Orange currently active)
+  const hasSevereAdvisory = unexpiredAdvisories.some((a) => {
+    const sev = (a.severity || '').toLowerCase();
+    return getAdvisoryTemporalState(a) === 'ACTIVE' && (sev === 'red' || sev === 'orange');
+  });
+
+  const hasActiveAdvisory = unexpiredAdvisories.some((a) => getAdvisoryTemporalState(a) === 'ACTIVE');
   const hasActiveEvent = events.some((e) => e.status === 'active');
-  const IconComponent = hasActiveEvent ? Bell : BellRing;
-  const pulseClass = !hasActiveEvent && !isOpen ? 'animate-pulse' : '';
+  const hasAnyActive = hasActiveAdvisory || hasActiveEvent;
+
+  // Determine icon & styling
+  let IconComponent = BellRing;
+  let pulseClass = !hasAnyActive && !isOpen ? 'animate-pulse' : '';
+  let badgeColor = '#38bdf8';
+  let badgeTextColor = '#090d16';
+
+  if (hasSevereAdvisory) {
+    IconComponent = ShieldAlert;
+    pulseClass = 'animate-pulse';
+    badgeColor = '#f43f5e';
+    badgeTextColor = '#ffffff';
+  } else if (hasAnyActive) {
+    IconComponent = Bell;
+  }
+
+  const tooltipLabel = [
+    advisoryCount > 0 ? `${advisoryCount} Official ${advisoryCount === 1 ? 'Advisory' : 'Advisories'}` : '',
+    eventCount > 0 ? `${eventCount} Civic ${eventCount === 1 ? 'Event' : 'Events'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <button
       type="button"
       onClick={onToggle}
-      title={`${count} Environmental Event Advisory${count > 1 ? 's' : ''}`}
-      aria-label={`${count} Environmental Event Advisory${count > 1 ? 's' : ''}`}
+      title={tooltipLabel}
+      aria-label={tooltipLabel}
       className="relative p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center border"
       style={{
-        backgroundColor: isOpen ? 'var(--surface-elevated)' : 'var(--surface-input)',
-        borderColor: isOpen ? 'var(--accent)' : 'var(--border-muted)',
-        color: isOpen ? 'var(--accent)' : 'var(--text-secondary)',
+        backgroundColor: isOpen
+          ? 'var(--surface-elevated)'
+          : hasSevereAdvisory
+          ? 'rgba(244,63,94,0.10)'
+          : 'var(--surface-input)',
+        borderColor: isOpen
+          ? 'var(--accent)'
+          : hasSevereAdvisory
+          ? 'rgba(244,63,94,0.40)'
+          : 'var(--border-muted)',
+        color: isOpen
+          ? 'var(--accent)'
+          : hasSevereAdvisory
+          ? '#f43f5e'
+          : 'var(--text-secondary)',
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-elevated)';
-        (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)';
+        (e.currentTarget as HTMLButtonElement).style.color = hasSevereAdvisory ? '#f43f5e' : 'var(--accent)';
       }}
       onMouseLeave={(e) => {
         if (!isOpen) {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-input)';
-          (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = hasSevereAdvisory
+            ? 'rgba(244,63,94,0.10)'
+            : 'var(--surface-input)';
+          (e.currentTarget as HTMLButtonElement).style.color = hasSevereAdvisory ? '#f43f5e' : 'var(--text-secondary)';
         }
       }}
     >
       <IconComponent className={`w-4 h-4 ${pulseClass}`} />
       <span
-        className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-mono font-bold flex items-center justify-center"
+        className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-mono font-bold flex items-center justify-center shadow-xs"
         style={{
-          backgroundColor: '#38bdf8',
-          color: '#090d16',
+          backgroundColor: badgeColor,
+          color: badgeTextColor,
         }}
       >
-        {count}
+        {totalCount}
       </span>
     </button>
   );
