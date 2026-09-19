@@ -50,7 +50,7 @@ export const ComparisonSurface: React.FC<ComparisonSurfaceProps> = ({ comparison
 
   // Harmonious theme-aware accent colors matching WeatherMap markers
   const colorA = accentColor;
-  const colorB = theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#38bdf8' : '#a78bfa';
+  const colorB = theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#fb923c' : '#a78bfa';
 
   const isWinnerA = compDec.recommended_key === 'a';
   const isWinnerB = compDec.recommended_key === 'b';
@@ -197,9 +197,11 @@ export const ComparisonSurface: React.FC<ComparisonSurfaceProps> = ({ comparison
   const renderAlertItem = (alert: WeatherAlert) => {
     const isWarn = alert.severity === 'warning';
     const isWatch = alert.severity === 'watch';
+    // Advisory fallback color: uses the themed accent (Vandal=red, Atheris=blue, etc.)
+    const advisoryColor = colorA;
     const bg = isWarn ? 'rgba(225,29,72,0.10)' : isWatch ? 'rgba(217,119,6,0.10)' : 'rgba(56,189,248,0.10)';
     const border = isWarn ? 'rgba(225,29,72,0.30)' : isWatch ? 'rgba(217,119,6,0.30)' : 'rgba(56,189,248,0.25)';
-    const color = isWarn ? '#f43f5e' : isWatch ? '#fbbf24' : '#38bdf8';
+    const color = isWarn ? '#f43f5e' : isWatch ? '#fbbf24' : advisoryColor;
 
     return (
       <div

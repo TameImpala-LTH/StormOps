@@ -342,11 +342,24 @@ function applyTileFilter(map: L.Map, isDark: boolean) {
 const createMarkerHtml = (
   locName: string,
   pw: TargetPeriodWeather,
-  accentColor: string = 'var(--accent)'
+  accentColor: string = 'var(--accent)',
+  rainColor: string = '#38bdf8',
+  isFocal: boolean = false
 ): string => {
   const temp = Math.round(pw.temperature);
   const rain = pw.precipitation_probability;
-  return `
+
+  // Condition halo color — derived from temperature to represent weather intensity visually.
+  // Hot (>34°C) = amber aura, Cold (<10°C) = icy blue, Rain (>40%) = rain ripple, else = accent
+  const haloColor =
+    temp >= 34 ? '#f97316'  // hot — orange/amber
+    : temp >= 25 ? accentColor  // warm — accent (red in Vandal, blue in Atheris)
+    : temp >= 10 ? '#34d399'  // mild — soft emerald
+    : '#60a5fa';  // cold — icy blue
+  const showRainRipple = rain > 40;
+  const rippleVandalClass = rainColor === '#fb923c' ? ' stormops-rain-ripple-vandal' : '';
+
+  const pill = `
     <div style="
       display: inline-flex;
       align-items: center;
@@ -358,15 +371,15 @@ const createMarkerHtml = (
       color: var(--text-primary);
       box-shadow: 0 4px 16px rgba(0,0,0,0.35);
       font-family: inherit;
-      font-size: 11px;
+      font-size: 12px;
       white-space: nowrap;
-      transform: translate(-50%, -100%);
-      cursor: pointer;
+      pointer-events: none;
+      user-select: none;
     ">
       <span style="
         width: 7px;
         height: 7px;
-        border-radius: 50%;
+        border-radius: 9999px;
         background-color: ${accentColor};
         flex-shrink: 0;
         box-shadow: 0 0 5px ${accentColor};
@@ -378,10 +391,24 @@ const createMarkerHtml = (
         font-size: 9px;
         padding: 1px 5px;
         border-radius: 4px;
-        background-color: rgba(56,189,248,0.10);
-        color: #38bdf8;
-        border: 1px solid rgba(56,189,248,0.22);
+        background-color: ${rainColor}1a;
+        color: ${rainColor};
+        border: 1px solid ${rainColor}38;
       ">${rain}%</span>
+    </div>
+  `;
+
+  if (!isFocal) return pill;
+
+  // Focal marker: wrap in beacon + halo container
+  return `
+    <div
+      class="stormops-focal-marker"
+      style="--marker-accent: ${accentColor};"
+    >
+      <div class="stormops-condition-halo" style="--halo-color: ${haloColor};"></div>
+      ${showRainRipple ? `<div class="stormops-rain-ripple${rippleVandalClass}"></div>` : ''}
+      ${pill}
     </div>
   `;
 };
@@ -532,7 +559,11 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   // Theme-specific accent colors matching design tokens (including Atheris vs Vandal)
   const accentColorA = accentColor;
   const accentColorB =
-    theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#38bdf8' : '#a78bfa';
+    theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#fb923c' : '#a78bfa';
+
+  // Rain badge pill color in marker HTML — Vandal = supporting orange, all others = sky blue.
+  const rainColorA = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
+  const rainColorB = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
 
 
   // ---------------------------------------------------------------------------
@@ -709,7 +740,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       // Marker A
       const customIconA = L.divIcon({
         className: 'stormops-weather-marker',
-        html: createMarkerHtml(placeName, weather, accentColorA),
+        html: createMarkerHtml(placeName, weather, accentColorA, rainColorA, true),
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
@@ -721,7 +752,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       if (locationB && weatherB) {
         const customIconB = L.divIcon({
           className: 'stormops-weather-marker-b',
-          html: createMarkerHtml(locationB.name, weatherB, accentColorB),
+          html: createMarkerHtml(locationB.name, weatherB, accentColorB, rainColorB),
           iconSize: [0, 0],
           iconAnchor: [0, 0],
         });
@@ -821,7 +852,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         markerRef.current.setLatLng([lat, lng]);
         markerRef.current.setIcon(L.divIcon({
           className: 'stormops-weather-marker',
-          html: createMarkerHtml(placeName, weather, accentColorA),
+          html: createMarkerHtml(placeName, weather, accentColorA, rainColorA, true),
           iconSize: [0, 0], iconAnchor: [0, 0],
         }));
         markerRef.current.getPopup()?.setContent(createPopupHtml(location, weather, periodLabel));
@@ -831,7 +862,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         const markerB = L.marker([locationB.latitude, locationB.longitude], {
           icon: L.divIcon({
             className: 'stormops-weather-marker-b',
-            html: createMarkerHtml(locationB.name, weatherB, accentColorB),
+            html: createMarkerHtml(locationB.name, weatherB, accentColorB, rainColorB),
             iconSize: [0, 0], iconAnchor: [0, 0],
           }),
         }).addTo(map);
@@ -843,7 +874,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         markerBRef.current.setLatLng([locationB.latitude, locationB.longitude]);
         markerBRef.current.setIcon(L.divIcon({
           className: 'stormops-weather-marker-b',
-          html: createMarkerHtml(locationB.name, weatherB, accentColorB),
+          html: createMarkerHtml(locationB.name, weatherB, accentColorB, rainColorB),
           iconSize: [0, 0], iconAnchor: [0, 0],
         }));
         markerBRef.current.getPopup()?.setContent(createPopupHtml(locationB, weatherB, periodLabel));
@@ -873,7 +904,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         markerRef.current.setLatLng([lat, lng]);
         markerRef.current.setIcon(L.divIcon({
           className: 'stormops-weather-marker',
-          html: createMarkerHtml(placeName, weather, accentColorA),
+          html: createMarkerHtml(placeName, weather, accentColorA, rainColorA, true),
           iconSize: [0, 0], iconAnchor: [0, 0],
         }));
         markerRef.current.getPopup()?.setContent(createPopupHtml(location, weather, periodLabel));

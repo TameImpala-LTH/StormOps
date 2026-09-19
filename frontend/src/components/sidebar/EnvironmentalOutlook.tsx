@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, AlertCircle, Sparkles } from 'lucide-react';
 import { EnvironmentalOutlookItem } from '../../types/auth';
+import { useTheme } from '../../context/ThemeContext';
 
 interface EnvironmentalOutlookProps {
   items: EnvironmentalOutlookItem[];
@@ -40,6 +41,8 @@ export const EnvironmentalOutlook: React.FC<EnvironmentalOutlookProps> = ({
   onOpenAuthModal,
   onSelectLocation,
 }) => {
+  const { darkVariant } = useTheme();
+  const isVandal = darkVariant === 'vandal';
   // Empty State 1: Anonymous User
   if (!isAuthenticated) {
     return (
@@ -157,7 +160,9 @@ export const EnvironmentalOutlook: React.FC<EnvironmentalOutlookProps> = ({
                     isActive
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                       : isUpcoming
-                      ? 'bg-sky-500/10 text-sky-400 border-sky-500/30'
+                      ? isVandal
+                        ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                        : 'bg-sky-500/10 text-sky-400 border-sky-500/30'
                       : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                   }`}
                 >

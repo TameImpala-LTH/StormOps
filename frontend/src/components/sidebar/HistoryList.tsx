@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { MessageSquare, Trash2, Clock, MapPin } from 'lucide-react';
 import { ConversationSummary } from '../../types/auth';
+import { useTheme } from '../../context/ThemeContext';
 
 interface HistoryListProps {
   conversations: ConversationSummary[];
@@ -72,6 +73,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
   onSelectConversation,
   onDeleteConversation,
 }) => {
+  const { accentColor } = useTheme();
   const grouped = useMemo(() => {
     const buckets: { label: TimeBucket; items: ConversationSummary[] }[] = [
       { label: 'Today', items: [] },
@@ -129,7 +131,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                   onClick={() => onSelectConversation(c.id)}
                   className={`group relative flex flex-col p-2.5 rounded-xl text-xs cursor-pointer transition-all border ${
                     isActive
-                      ? 'shadow-xs ring-1 ring-sky-500/30'
+                      ? 'shadow-xs'
                       : 'hover:border-zinc-700/60'
                   }`}
                   style={{
@@ -138,6 +140,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                       : 'rgba(255, 255, 255, 0.02)',
                     borderColor: isActive ? 'var(--accent)' : 'var(--border-muted)',
                     color: 'var(--text-primary)',
+                    boxShadow: isActive ? `0 0 0 1px ${accentColor}40` : undefined,
                   }}
                 >
                   {/* Header row: Time & location meta */}
@@ -173,7 +176,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
 
                   {/* Question */}
                   <div className="font-medium text-[12px] leading-tight flex items-start gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-70 mt-0.5 text-sky-400" />
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-70 mt-0.5" style={{ color: 'var(--accent)' }} />
                     <span className="line-clamp-2">{c.last_query || c.title}</span>
                   </div>
 

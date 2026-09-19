@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, MapPin, ExternalLink, ShieldAlert } from 'lucide-react';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../../types/advisory';
 import { AdvisorySeverityBadge } from './AdvisorySeverityBadge';
+import { useTheme } from '../../context/ThemeContext';
 
 interface OfficialAdvisoryCardProps {
   advisory: OfficialAdvisory;
@@ -34,12 +35,21 @@ function formatDateTime(isoDate: string): string {
 }
 
 export const OfficialAdvisoryCard: React.FC<OfficialAdvisoryCardProps> = ({ advisory }) => {
+  const { darkVariant } = useTheme();
+  const isVandal = darkVariant === 'vandal';
+
   const temporalState = getAdvisoryTemporalState(advisory);
   const isActive = temporalState === 'ACTIVE';
   const isUpcoming = temporalState === 'UPCOMING';
 
   const sev = (advisory.severity || '').toLowerCase();
   const isSevere = sev === 'red' || sev === 'orange';
+
+  // Theme-adaptive upcoming color: Vandal = orange, all others = sky blue.
+  // ACTIVE (emerald) and EXPIRED (muted) are pure temporal state labels — never themed.
+  const upcomingColor = isVandal ? '#fb923c' : '#38bdf8';
+  const upcomingBg = isVandal ? 'rgba(251,146,60,0.10)' : 'rgba(56,189,248,0.10)';
+  const upcomingBorder = isVandal ? 'rgba(251,146,60,0.25)' : 'rgba(56,189,248,0.25)';
 
   return (
     <article
@@ -72,9 +82,9 @@ export const OfficialAdvisoryCard: React.FC<OfficialAdvisoryCardProps> = ({ advi
             <span
               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider"
               style={{
-                backgroundColor: 'rgba(56,189,248,0.10)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56,189,248,0.25)',
+                backgroundColor: upcomingBg,
+                color: upcomingColor,
+                border: `1px solid ${upcomingBorder}`,
               }}
             >
               <Clock className="w-3 h-3" />

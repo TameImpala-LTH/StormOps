@@ -6,6 +6,7 @@ import { EnvironmentalEvent, EnvironmentalPressureItem } from '../types/weather'
 import { OfficialAdvisory } from '../types/advisory';
 import { OfficialAdvisoryCard } from './advisory/OfficialAdvisoryCard';
 import { AirQualityCard } from './advisory/AirQualityCard';
+import { useTheme } from '../context/ThemeContext';
 
 interface EnvironmentalEventPanelProps {
   events?: EnvironmentalEvent[];
@@ -45,7 +46,11 @@ function formatStartDate(isoDate: string): string {
   }
 }
 
-function getStatusBadgeStyle(status?: string, daysUntil?: number): { label: string; color: string; bg: string; border: string } {
+function getStatusBadgeStyle(
+  status?: string,
+  daysUntil?: number,
+  isVandal = false
+): { label: string; color: string; bg: string; border: string } {
   if (status === 'active') {
     return {
       label: 'ACTIVE EVENT NOW',
@@ -62,11 +67,15 @@ function getStatusBadgeStyle(status?: string, daysUntil?: number): { label: stri
       border: 'rgba(251,191,36,0.30)',
     };
   }
+  // UPCOMING status: Vandal uses supporting orange; all other themes use sky blue.
+  const upcomingColor = isVandal ? '#fb923c' : '#38bdf8';
+  const upcomingBgAlpha = isVandal ? 'rgba(251,146,60,0.12)' : 'rgba(56,189,248,0.12)';
+  const upcomingBorderAlpha = isVandal ? 'rgba(251,146,60,0.30)' : 'rgba(56,189,248,0.30)';
   return {
     label: `UPCOMING IN ${daysUntil ?? 0} DAYS`,
-    color: '#38bdf8',
-    bg: 'rgba(56,189,248,0.12)',
-    border: 'rgba(56,189,248,0.30)',
+    color: upcomingColor,
+    bg: upcomingBgAlpha,
+    border: upcomingBorderAlpha,
   };
 }
 
@@ -77,6 +86,13 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
   onClose,
   locationName: _locationName,
 }) => {
+  const { darkVariant } = useTheme();
+  const isVandal = darkVariant === 'vandal';
+
+  // Derive theme-adaptive accent for non-severity chrome elements.
+  // Atheris = sky blue, Vandal = neon red, Night = amber, Light = emerald.
+  // We use var(--accent) which already resolves to the correct per-theme value.
+
   // Separate AQI advisories from general weather advisories
   const aqiAdvisories = advisories.filter(
     (a) => a.hazard_type === 'AIR_QUALITY' || a.authority.toUpperCase() === 'CPCB'
@@ -113,7 +129,7 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: 'var(--border-muted)' }}>
           <div className="flex items-center space-x-2">
-            <div className="p-1.5 rounded-lg text-sky-400" style={{ backgroundColor: 'var(--surface-input)' }}>
+            <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--surface-input)', color: 'var(--accent)' }}>
               <Activity className="w-4 h-4" />
             </div>
             <div>
@@ -270,13 +286,13 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
               <div
                 className="flex items-center gap-2 px-3 py-2 rounded-xl border"
                 style={{
-                  backgroundColor: 'rgba(56,189,248,0.06)',
-                  borderColor: 'rgba(56,189,248,0.18)',
+                  backgroundColor: isVandal ? 'rgba(251,146,60,0.06)' : 'rgba(56,189,248,0.06)',
+                  borderColor: isVandal ? 'rgba(251,146,60,0.18)' : 'rgba(56,189,248,0.18)',
                 }}
               >
-                <Clock className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
                 <div>
-                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-sky-400 block">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider block" style={{ color: 'var(--accent)' }}>
                     Upcoming Environmental Periods
                   </span>
                   <span className="text-[10px] font-mono text-zinc-400">
@@ -304,7 +320,7 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
             ) : (
               <div className="space-y-4">
                 {events.map((event) => {
-                  const statusStyle = getStatusBadgeStyle(event.status, event.days_until);
+                  const statusStyle = getStatusBadgeStyle(event.status, event.days_until, isVandal);
                   const occurrence = event.occurrences && event.occurrences.length > 0 ? event.occurrences[0] : null;
 
                   return (
@@ -319,7 +335,7 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
                       {/* Event Title & Badges */}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-semibold block">
+                          <span className="text-[10px] font-mono uppercase tracking-wider font-semibold block" style={{ color: 'var(--accent)' }}>
                             {event.category} event · StormOps Curated
                           </span>
                           <h4 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -349,7 +365,7 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
                       {/* Event Dates */}
                       {occurrence && (
                         <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
-                          <Calendar className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+                          <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
                           <span>
                             {occurrence.start_date} to {occurrence.end_date} ({occurrence.year})
                           </span>

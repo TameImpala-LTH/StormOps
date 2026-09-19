@@ -2,7 +2,16 @@
 
 import app.core.compat  # noqa: F401
 import pytest
-from app.services.geocoding_service import geocoding_service
+from fastapi import HTTPException
+from app.services.geocoding_service import (
+    geocoding_service,
+    geocode_cache_clear,
+    geocode_cache_size,
+    geocode_cache_keys,
+    _cache_set,
+    _GEOCODE_CACHE_MAX,
+)
+from app.schemas.query import GeocodedLocationSchema
 
 
 @pytest.mark.asyncio
@@ -143,3 +152,84 @@ async def test_explicit_country_qualified_queries():
 
     springfield_us = await geocoding_service.geocode_location("Springfield, USA")
     assert springfield_us.country_code == "US" or "United States" in springfield_us.country
+
+
+@pytest.mark.asyncio
+async def test_geocoding_cache_hit_and_consistency():
+    """Verify that repeated lookups hit the in-memory cache and return identical objects."""
+    geocode_cache_clear()
+    assert geocode_cache_size() == 0
+
+    # First call - cache miss
+    loc1 = await geocoding_service.geocode_location("Mumbai")
+    assert geocode_cache_size() >= 1
+
+    # Second call - cache hit
+    loc2 = await geocoding_service.geocode_location("Mumbai")
+    assert loc1.latitude == loc2.latitude
+    assert loc1.longitude == loc2.longitude
+    assert loc1.name == loc2.name
+
+
+@pytest.mark.asyncio
+async def test_geocoding_cache_normalization_and_alias_sharing():
+    """Verify that case differences, extra spaces, and historical aliases share cache entries."""
+    geocode_cache_clear()
+
+    # Seed with canonical name
+    loc_bengaluru = await geocoding_service.geocode_location("Bengaluru")
+    initial_size = geocode_cache_size()
+    assert initial_size >= 1
+
+    # Alias "Bangalore" should map to the same key and hit cache without increasing cache size
+    loc_bangalore = await geocoding_service.geocode_location("Bangalore")
+    assert loc_bangalore.latitude == loc_bengaluru.latitude
+    assert loc_bangalore.longitude == loc_bengaluru.longitude
+    assert geocode_cache_size() == initial_size
+
+    # Case insensitive & whitespace variations
+    loc_variant = await geocoding_service.geocode_location("  bEnGaLuRu  ")
+    assert loc_variant.latitude == loc_bengaluru.latitude
+    assert geocode_cache_size() == initial_size
+
+
+@pytest.mark.asyncio
+async def test_geocoding_cache_does_not_cache_failures():
+    """Verify that unresolvable locations raise 404 and are NEVER cached."""
+    geocode_cache_clear()
+    before_size = geocode_cache_size()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await geocoding_service.geocode_location("NonExistentFakeCityName98765xyz")
+    assert exc_info.value.status_code == 404
+    assert geocode_cache_size() == before_size
+
+
+@pytest.mark.asyncio
+async def test_geocoding_cache_bounded_lru_eviction():
+    """Verify that the cache respects maximum capacity and evicts oldest items in LRU order."""
+    geocode_cache_clear()
+
+    # Insert items up to limit
+    dummy_item = GeocodedLocationSchema(
+        name="Test",
+        country="TestCountry",
+        latitude=12.34,
+        longitude=56.78,
+        timezone="UTC",
+    )
+
+    for i in range(_GEOCODE_CACHE_MAX + 10):
+        await _cache_set(f"test_key_{i}", dummy_item)
+
+    # Size must not exceed max
+    assert geocode_cache_size() == _GEOCODE_CACHE_MAX
+
+    # Oldest 10 items (0..9) must have been evicted
+    keys = geocode_cache_keys()
+    assert "test_key_0" not in keys
+    assert "test_key_9" not in keys
+    assert f"test_key_{_GEOCODE_CACHE_MAX + 9}" in keys
+
+    # Clean up
+    geocode_cache_clear()

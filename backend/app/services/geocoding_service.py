@@ -1,13 +1,97 @@
 """Geocoding service using Open-Meteo Geocoding API for resolving location names to coordinates."""
 
+import asyncio
 import logging
-from typing import Optional
+import re
+import unicodedata
+from collections import OrderedDict
+from typing import Optional, Tuple
+
 from fastapi import HTTPException
 import httpx
 
 from app.schemas.query import GeocodedLocationSchema
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Bounded In-Memory Geocoding Cache
+# ---------------------------------------------------------------------------
+# Stores successful name -> (GeocodedLocationSchema, is_region_shortcut) lookups.
+# Design constraints:
+#   - Max 512 entries (bounded to avoid memory growth in long-running processes).
+#   - LRU eviction: oldest entries dropped when capacity is exceeded.
+#   - Only successful API results are stored; errors are never cached.
+#   - Keys are normalized (lowercase, ASCII-folded, whitespace-collapsed) to
+#     match across aliases like "Bangalore" / "bangalore" / "BANGALORE".
+#   - Thread-safe via asyncio.Lock (Render runs async FastAPI workers on one loop).
+#   - Never overrides device-provided GPS coordinates (reverse_geocode is uncached).
+#   - Testable: exposes cache_size(), cache_keys(), and clear_cache() helpers.
+
+_GEOCODE_CACHE: "OrderedDict[str, GeocodedLocationSchema]" = OrderedDict()
+_GEOCODE_CACHE_LOCK = asyncio.Lock()
+_GEOCODE_CACHE_MAX = 512
+
+
+def _normalize_cache_key(location_name: str) -> str:
+    """Produce a stable cache key from a location name.
+
+    Steps:
+      1. NFKD unicode normalization (decompose combined characters).
+      2. Strip accent diacritics (non-ASCII combining characters).
+      3. Lowercase.
+      4. Collapse runs of whitespace/punctuation to a single space.
+      5. Strip leading/trailing whitespace.
+
+    This ensures "Bengaluru", "bengaluru", "Bengalūru" all map to the
+    same key "bengaluru".
+    """
+    # NFKD then strip combining chars
+    normalized = unicodedata.normalize("NFKD", location_name)
+    ascii_folded = "".join(c for c in normalized if not unicodedata.combining(c))
+    lowered = ascii_folded.lower()
+    # Collapse whitespace sequences
+    key = re.sub(r"[\s,]+", " ", lowered).strip()
+    return key
+
+
+async def _cache_get(key: str) -> Optional[GeocodedLocationSchema]:
+    """Return a cached GeocodedLocationSchema or None, updating LRU order."""
+    async with _GEOCODE_CACHE_LOCK:
+        if key in _GEOCODE_CACHE:
+            _GEOCODE_CACHE.move_to_end(key)
+            return _GEOCODE_CACHE[key]
+    return None
+
+
+async def _cache_set(key: str, value: GeocodedLocationSchema) -> None:
+    """Store a geocoding result, evicting the oldest entry if over capacity."""
+    async with _GEOCODE_CACHE_LOCK:
+        if key in _GEOCODE_CACHE:
+            _GEOCODE_CACHE.move_to_end(key)
+        _GEOCODE_CACHE[key] = value
+        while len(_GEOCODE_CACHE) > _GEOCODE_CACHE_MAX:
+            _GEOCODE_CACHE.popitem(last=False)
+
+
+# ---------------------------------------------------------------------------
+# Public testability helpers (used by unit tests and benchmarks)
+# ---------------------------------------------------------------------------
+
+def geocode_cache_size() -> int:
+    """Return the current number of cached geocoding results."""
+    return len(_GEOCODE_CACHE)
+
+
+def geocode_cache_keys() -> Tuple[str, ...]:
+    """Return a snapshot of all current cache keys (for inspection in tests)."""
+    return tuple(_GEOCODE_CACHE.keys())
+
+
+def geocode_cache_clear() -> None:
+    """Clear the entire cache. Intended for test teardown only."""
+    _GEOCODE_CACHE.clear()
 
 GEOCODING_API_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
@@ -103,12 +187,16 @@ class GeocodingService:
         self._client = client
 
     async def geocode_location(self, location_name: str) -> GeocodedLocationSchema:
-        """Resolve location name globally to coordinates and timezone metadata."""
+        """Resolve location name globally to coordinates and timezone metadata.
+
+        Results are stored in an in-memory bounded LRU cache (max 512 entries) keyed
+        on the normalized, alias-resolved city name. Cache hits return in <0.1 ms.
+        Failed lookups (HTTPException) are never cached to avoid serving stale errors.
+        Device-provided GPS coordinates (reverse_geocode) are always uncached.
+        """
         cleaned_name = location_name.strip()
         if not cleaned_name:
             raise HTTPException(status_code=400, detail="Location name cannot be empty.")
-
-        lower_name = cleaned_name.lower()
 
         # Step 1: Detect explicit country qualifier (e.g. "London, UK", "Paris, France", "Springfield, USA")
         query_city = cleaned_name
@@ -134,11 +222,22 @@ class GeocodingService:
         else:
             target_city_name = query_city
 
+        # Cache key: build on the post-alias canonical target name (+ country filter if any).
+        # Country-qualified lookups ("London, UK" vs "London, CA") get distinct keys.
+        cache_key_str = target_city_name if not country_filter else f"{target_city_name},{country_filter}"
+        cache_key = _normalize_cache_key(cache_key_str)
+
+        # Cache lookup before any network I/O.
+        cached = await _cache_get(cache_key)
+        if cached is not None:
+            logger.debug("Geocoding cache hit for '%s' (key=%s)", cleaned_name, cache_key)
+            return cached
+
         # Step 3: Handle ambiguous state/region queries (e.g., "Kerala", "Goa", "Punjab")
         # Preserve genuine regional geographic entity and explicitly label as region
         if query_city_lower in INDIAN_REGION_CENTERS and not country_filter:
             lat, lon, region_name, country_name, cc = INDIAN_REGION_CENTERS[query_city_lower]
-            return GeocodedLocationSchema(
+            result = GeocodedLocationSchema(
                 name=f"{region_name} (Region)",
                 country=country_name,
                 country_code=cc,
@@ -147,6 +246,8 @@ class GeocodingService:
                 longitude=lon,
                 timezone="Asia/Kolkata",
             )
+            await _cache_set(cache_key, result)
+            return result
 
         # Step 4: Primary global resolution via Open-Meteo Geocoding API
         params = {
@@ -205,7 +306,7 @@ class GeocodingService:
                 results.sort(key=lambda x: x.get("population") or 0, reverse=True)
                 top_result = results[0]
 
-            return GeocodedLocationSchema(
+            result = GeocodedLocationSchema(
                 name=top_result.get("name", cleaned_name),
                 country=top_result.get("country", ""),
                 country_code=(top_result.get("country_code") or "").upper() or None,
@@ -214,6 +315,8 @@ class GeocodingService:
                 longitude=float(top_result["longitude"]),
                 timezone=top_result.get("timezone", "UTC"),
             )
+            await _cache_set(cache_key, result)
+            return result
 
         # Step 5: Global fallback to OpenStreetMap Nominatim (handles complex or country-qualified queries)
         try:
@@ -254,7 +357,7 @@ class GeocodingService:
                         if state_val and state_val.lower() == cleaned_name.lower():
                             disp_name = f"{state_val} (Region)"
 
-                    return GeocodedLocationSchema(
+                    result = GeocodedLocationSchema(
                         name=disp_name,
                         country=addr.get("country", ""),
                         country_code=(addr.get("country_code") or "").upper() or None,
@@ -263,6 +366,8 @@ class GeocodingService:
                         longitude=float(top_item["lon"]),
                         timezone="UTC",
                     )
+                    await _cache_set(cache_key, result)
+                    return result
         except Exception as exc:
             logger.warning(f"Nominatim global fallback lookup failed for '{cleaned_name}': {exc}")
 

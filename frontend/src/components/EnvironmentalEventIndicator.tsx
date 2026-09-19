@@ -2,6 +2,7 @@ import React from 'react';
 import { Bell, BellRing, ShieldAlert } from 'lucide-react';
 import { EnvironmentalEvent } from '../types/weather';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
+import { useTheme } from '../context/ThemeContext';
 
 interface EnvironmentalEventIndicatorProps {
   events?: EnvironmentalEvent[];
@@ -16,6 +17,9 @@ export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorPr
   isOpen,
   onToggle,
 }) => {
+  const { darkVariant } = useTheme();
+  const isVandal = darkVariant === 'vandal';
+
   const eventCount = events.length;
   // Exclude expired advisories from indicator count
   const unexpiredAdvisories = advisories.filter((a) => getAdvisoryTemporalState(a) !== 'EXPIRED');
@@ -37,14 +41,14 @@ export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorPr
   // Determine icon & styling
   let IconComponent = BellRing;
   let pulseClass = !hasAnyActive && !isOpen ? 'animate-pulse' : '';
-  let badgeColor = '#38bdf8';
-  let badgeTextColor = '#090d16';
+  // Severe advisory uses semantic red (#f43f5e) regardless of theme — invariant preserved.
+  // Non-severe badge: Vandal = neon red (#ff2a55), Atheris/others = electric blue (#38bdf8).
+  let badgeColor = hasSevereAdvisory ? '#f43f5e' : isVandal ? '#ff2a55' : '#38bdf8';
+  let badgeTextColor = '#ffffff';
 
   if (hasSevereAdvisory) {
     IconComponent = ShieldAlert;
     pulseClass = 'animate-pulse';
-    badgeColor = '#f43f5e';
-    badgeTextColor = '#ffffff';
   } else if (hasAnyActive) {
     IconComponent = Bell;
   }

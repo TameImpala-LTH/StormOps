@@ -339,3 +339,90 @@ body {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
   padding: 0.35rem !important;
 }
+
+/* ==========================================================================
+   StormOps — Immersive Map Marker Animations
+   Beacon ring: a expanding + fading ring that pulses outward from the focal
+   marker dot. Condition halo: a steady glow disc behind the marker that
+   represents weather intensity. Both use the currentColor of the parent
+   marker via CSS custom properties passed via inline style.
+   ========================================================================== */
+
+@keyframes stormops-beacon {
+  0%   { transform: scale(0.85); opacity: 0.9; }
+  60%  { transform: scale(1.8);  opacity: 0.25; }
+  100% { transform: scale(2.4);  opacity: 0; }
+}
+
+@keyframes stormops-beacon-slow {
+  0%   { transform: scale(0.9);  opacity: 0.6; }
+  70%  { transform: scale(2.0);  opacity: 0.12; }
+  100% { transform: scale(2.6);  opacity: 0; }
+}
+
+@keyframes stormops-halo-breathe {
+  0%, 100% { opacity: 0.20; transform: scale(1.00); }
+  50%       { opacity: 0.35; transform: scale(1.10); }
+}
+
+@keyframes stormops-rain-ripple {
+  0%   { transform: scale(0.6); opacity: 0.55; }
+  80%  { transform: scale(1.7); opacity: 0; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* Wrapper for the focal-marker beacon ring system */
+.stormops-focal-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Outer beacon ring — quick pulse */
+.stormops-focal-marker::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--marker-accent, var(--accent));
+  animation: stormops-beacon 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Inner beacon ring — slow offset pulse */
+.stormops-focal-marker::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1px solid var(--marker-accent, var(--accent));
+  animation: stormops-beacon-slow 2.2s ease-out 0.7s infinite;
+  pointer-events: none;
+}
+
+/* Condition halo — persistent ambient glow disc */
+.stormops-condition-halo {
+  position: absolute;
+  inset: -14px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--halo-color, var(--accent)) 0%, transparent 70%);
+  animation: stormops-halo-breathe 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Rain-condition ripple overlay (shown when precipitation probability > 40%) */
+.stormops-rain-ripple {
+  position: absolute;
+  inset: -10px;
+  border-radius: 9999px;
+  border: 1.5px solid #38bdf8;
+  opacity: 0;
+  animation: stormops-rain-ripple 2.8s ease-out 1.2s infinite;
+  pointer-events: none;
+}
+
+.stormops-rain-ripple-vandal {
+  border-color: #fb923c;
+}
