@@ -1,0 +1,40 @@
+name: Render Backend Keep-Alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    name: Ping Render Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Lightweight Health Request
+        run: |
+          echo "Pinging Render backend health endpoint..."
+          ENDPOINT="https://stormops-backend-4uoz.onrender.com/api/health"
+
+          HTTP_STATUS=$(curl -s -S -o /tmp/health_response.json -w "%{http_code}" --max-time 45 "$ENDPOINT")
+          CURL_EXIT=$?
+
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Payload:"
+          if [ -f /tmp/health_response.json ]; then
+            cat /tmp/health_response.json
+            echo ""
+          else
+            echo "(No response body recorded)"
+          fi
+
+          if [ $CURL_EXIT -ne 0 ]; then
+            echo "Error: curl command exited with non-zero status code: $CURL_EXIT"
+            exit $CURL_EXIT
+          fi
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Error: Expected HTTP 200 from $ENDPOINT, but received HTTP $HTTP_STATUS."
+            exit 1
+          fi
+
+          echo "Success: Render backend returned HTTP 200 OK."
