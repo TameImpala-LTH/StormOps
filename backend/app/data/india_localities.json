@@ -2942,5 +2942,44 @@
     "country": "India",
     "country_code": "IN",
     "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "New Town",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Rajarhat",
+    "latitude": 22.5883,
+    "longitude": 88.4734,
+    "aliases": [
+      "new town rajarhat",
+      "action area",
+      "ecospace"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ruby More",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5136,
+    "longitude": 88.3993,
+    "aliases": [
+      "ruby",
+      "ruby crossing",
+      "ruby hospital",
+      "ruby mor"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
   }
 ]

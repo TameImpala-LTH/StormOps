@@ -118,13 +118,14 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
         if not loc:
             return None
         loc_clean = re.sub(
-            r"\b(?:should|i|go|visit|travel|fly|drive|head|pack|to|is|better|for|outdoor|activities|in|at|near|the|where|place|has|less|more|rain|cooler|warmer|colder|hotter|temperature|tomorrow|today|tonight|this|evening|morning|afternoon|weekend|saturday|sunday|mein|me|ka|te|er|r)\b",
+            r"\b(?:should|i|go|visit|travel|fly|drive|head|pack|to|is|better|for|outdoor|activities|in|at|near|the|where|place|has|cooler|warmer|colder|hotter|temperature|tomorrow|today|tonight|this|evening|morning|afternoon|weekend|saturday|sunday|mein|me|ka|te|er|r)\b",
             "",
             loc,
             flags=re.IGNORECASE,
         ).strip()
         loc_clean = re.sub(r"\s+", " ", loc_clean)
-        loc_clean = re.sub(r"^[^\w\u0900-\u09FF]+|[^\w\u0900-\u09FF]+$", "", loc_clean).strip()
+        loc_clean = re.sub(r"^[^\w\u0900-\u0D7F]+|[^\w\u0900-\u0D7F]+$", "", loc_clean).strip()
+        loc_clean = loc_clean.rstrip(",").strip()
         canonical = multilingual_service.canonicalize_known_location(loc_clean)
         if not canonical or canonical.lower() in INVALID_LOCATIONS:
             return None
@@ -161,7 +162,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
         else:
             # Regex patterns for dual location extraction
             m1 = re.search(
-                r",\s*([A-Za-z\u0900-\u09FF\s\.\-']+?)\s+(?:or|and|vs|versus|या|ना|বা|அல்லது|లేదా|किंवा)\s+([A-Za-z\u0900-\u09FF\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
+                r",\s*([A-Za-z\u0900-\u0D7F\s\.\-']+?)\s+(?:or|and|vs|versus|या|ना|বা|அல்லது|లేదా|किंवा)\s+([A-Za-z\u0900-\u0D7F\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
                 text, re.IGNORECASE
             )
             if m1:
@@ -169,7 +170,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
                 extracted_location_b = m1.group(2).strip()
             else:
                 m2 = re.search(
-                    r"\b(?:compare|तुलना)\s+([A-Za-z\u0900-\u09FF\s\.\-']+?)\s+(?:and|vs|versus|with|to|और|ओर|এবং)\s+([A-Za-z\u0900-\u09FF\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
+                    r"\b(?:compare|तुलना)\s+([A-Za-z\u0900-\u0D7F\s\.\-']+?)\s+(?:and|vs|versus|with|to|और|ओर|এবং)\s+([A-Za-z\u0900-\u0D7F\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
                     text, re.IGNORECASE
                 )
                 if m2:
@@ -177,7 +178,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
                     extracted_location_b = m2.group(2).strip()
                 else:
                     m3 = re.search(
-                        r"([A-Za-z\u0900-\u09FF\s\.\-']+?)\s+(?:or|vs|versus|या|না|বা|அல்லது|లేదా|किंवा)\s+([A-Za-z\u0900-\u09FF\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
+                        r"([A-Za-z\u0900-\u0D7F\s\.\-']+?)\s+(?:or|vs|versus|या|ना|বা|அல்லது|లేదా|किंवा)\s+([A-Za-z\u0900-\u0D7F\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
                         text, re.IGNORECASE
                     )
                     if m3:
@@ -224,32 +225,35 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
             extracted_location = multilingual_service.KNOWN_LOCATION_TRANSLITERATIONS[raw_name]
             break
 
+    # Primary preposition extraction (preserves full location phrases including commas: "Park Street, London", "Newtown, West Bengal")
     if not extracted_location:
         loc_matches = re.findall(
-            r"\b(?:in|at|near|about|में|এ|তে)\s+([A-Za-z\u0900-\u09FF\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon|आज|कल|रात|सुबह|আজ|কাল)|[\?\!\.\,]|\s*$)",
+            r"\b(?:in|at|near|about|में|এ|তে)\s+([A-Za-z\u0900-\u0D7F\s\.\-',]+?)(?=\s+(?:today|tomorrow|tonight|this|now|right\s+now|right|evening|morning|afternoon|weekend|saturday|sunday|आज|कल|रात|सुबह|আজ|কাল)\b|[\?\!;]|\s*$)",
             text,
             re.IGNORECASE,
         )
         if loc_matches:
-            candidate = clean_loc(loc_matches[-1].strip())
+            candidate = clean_loc(loc_matches[-1].strip().rstrip(","))
             if candidate and candidate.lower() not in INVALID_LOCATIONS:
                 extracted_location = candidate
 
+    # Post-position extraction (e.g. "Kolkata mein", "Park Street, London mein")
     if not extracted_location:
         post_matches = re.findall(
-            r"\b([A-Za-z\u0900-\u09FF\.\-']+)\s+(?:mein|me|में|এ|তে)\b",
+            r"\b([A-Za-z\u0900-\u0D7F\s\.\-',]+?)\s+(?:mein|me|में|এ|তে)\b",
             text,
             re.IGNORECASE,
         )
         if post_matches:
-            candidate = clean_loc(post_matches[-1].strip())
+            candidate = clean_loc(post_matches[-1].strip().rstrip(","))
             if candidate and candidate.lower() not in INVALID_LOCATIONS:
                 extracted_location = candidate
 
+    # Secondary preposition extraction ("for <Loc>", "to <Loc>")
     if not extracted_location:
         secondary_matches = list(
             re.finditer(
-                r"\b(for|to)\s+([A-Za-z\s\.\-']+?)(?=\s+(?:today|tomorrow|tonight|this|now|right|evening|morning|afternoon)|[\?\!\.\,]|\s*$)",
+                r"\b(for|to)\s+([A-Za-z\u0900-\u0D7F\s\.\-',]+?)(?=\s+(?:today|tomorrow|tonight|this|now|right\s+now|right|evening|morning|afternoon|weekend|saturday|sunday)\b|[\?\!;]|\s*$)",
                 text,
                 re.IGNORECASE,
             )
@@ -257,7 +261,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
         valid_candidates = []
         for m in secondary_matches:
             prep = m.group(1).lower()
-            val = m.group(2).strip()
+            val = m.group(2).strip().rstrip(",")
             if prep == "to" and re.match(
                 r"^(go|carry|visit|take|walk|travel|fly|drive|have|do|see|pack|head|run|wear)\b", val, re.IGNORECASE
             ):
@@ -271,6 +275,19 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
         if valid_candidates:
             extracted_location = clean_loc(valid_candidates[-1])
 
+    # Prefix location extraction ("<Location> weather", "<Location> forecast")
+    if not extracted_location:
+        prefix_matches = re.findall(
+            r"^\s*([A-Za-z\u0900-\u0D7F\s\.\-',]+?)\s+(?:weather|forecast|temperature|temp|mausam|hawa|barish|brishti)\b",
+            text,
+            re.IGNORECASE,
+        )
+        if prefix_matches:
+            candidate = clean_loc(prefix_matches[0].strip().rstrip(","))
+            if candidate and candidate.lower() not in INVALID_LOCATIONS:
+                extracted_location = candidate
+
+    # Fallback cleaned tokens (preserves comma qualifiers)
     if not extracted_location:
         cleaned = re.sub(
             r"\b(what's|whats|what|will|is|it|the|weather|like|how|hot|cold|should|i|carry|an|umbrella|rain|be|in|at|for|near|to|about|and|or|then|there|today|tomorrow|tonight|this|evening|morning|afternoon|now|right|why|explain|reason|wear|clothes|jacket|coat|pack|dress|bring|take|wind|winds|breeze|humidity|cloud|clouds|mausam|kaisa|kaisi|kaise|hai|hain|mein|\?)\b",
@@ -278,10 +295,18 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
             lower_text,
             flags=re.IGNORECASE,
         )
-        cleaned = re.sub(r"^[^\w\u0900-\u09FF]+|[^\w\u0900-\u09FF]+$", "", cleaned).strip()
-        # Filter out tokens present in INVALID_LOCATIONS
-        tokens = [t for t in re.split(r"[\s\?\!\.,]+", cleaned) if t and t.lower() not in INVALID_LOCATIONS]
-        cleaned_filtered = " ".join(tokens).strip()
+        cleaned = re.sub(r"^[^\w\u0900-\u0D7F]+|[^\w\u0900-\u0D7F]+$", "", cleaned).strip()
+        if "," in cleaned:
+            parts = [p.strip() for p in cleaned.split(",") if p.strip()]
+            cleaned_parts = []
+            for p in parts:
+                toks = [t for t in re.split(r"[\s\?\!;]+", p) if t and t.lower() not in INVALID_LOCATIONS]
+                if toks:
+                    cleaned_parts.append(" ".join(toks))
+            cleaned_filtered = ", ".join(cleaned_parts)
+        else:
+            tokens = [t for t in re.split(r"[\s\?\!\.,]+", cleaned) if t and t.lower() not in INVALID_LOCATIONS]
+            cleaned_filtered = " ".join(tokens).strip()
         cleaned_canonical = multilingual_service.canonicalize_known_location(cleaned_filtered) if cleaned_filtered else ""
         if cleaned_canonical and len(cleaned_canonical) >= 2 and cleaned_canonical.lower() not in INVALID_LOCATIONS:
             extracted_location = cleaned_canonical.title()
@@ -292,6 +317,7 @@ def extract_query_entities_rule_based(query: str, language_hint: Optional[str] =
         extracted_location = clean_loc(extracted_location)
         if extracted_location and extracted_location.lower() in INVALID_LOCATIONS:
             extracted_location = None
+
 
     return ExtractedQueryInfo(
         original_query=text,

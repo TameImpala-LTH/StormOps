@@ -244,6 +244,7 @@ INDIAN_CITY_ALIASES = {
     "vizag": "Visakhapatnam",
 }
 
+
 # Common country name/code mappings for parsing explicit country-qualified queries ("City, Country")
 COUNTRY_NAME_TO_CODE = {
     "uk": "GB",
@@ -370,6 +371,8 @@ INDIAN_PROMINENT_LOCALITIES: Dict[str, Tuple[str, str, str]] = {
     "dakshineswar": ("Kolkata", "West Bengal", "IN"),
     "batanagar": ("Kolkata", "West Bengal", "IN"),
     "shyamnagar": ("Kolkata", "West Bengal", "IN"),
+    "ruby more": ("Kolkata", "West Bengal", "IN"),
+    "ruby crossing": ("Kolkata", "West Bengal", "IN"),
 
     # Mumbai Localities
     "bandra": ("Mumbai", "Maharashtra", "IN"),
@@ -634,6 +637,8 @@ class GeocodingService:
                     country_filter = "IN"
                     state_filter = INDIAN_STATE_TO_CANONICAL.get(candidate_qualifier)
                     query_city = candidate_city
+                    if state_filter == "West Bengal" and candidate_city.lower().strip() == "newtown":
+                        query_city = "New Town"
                     is_explicit_geography = True
                     logger.debug(
                         "India state qualifier detected: '%s' → country_filter=IN, state='%s'",
@@ -863,8 +868,14 @@ class GeocodingService:
             resolved_name = top_result.get("name", cleaned_name)
             resolved_admin1 = top_result.get("admin1")
             resolved_country = top_result.get("country", "")
+
             if state_filter and resolved_admin1:
-                display_name = f"{resolved_name}, {resolved_admin1}, {resolved_country}".strip(", ")
+                parts = [resolved_name]
+                if resolved_admin1 and resolved_admin1.lower() != resolved_name.lower():
+                    parts.append(resolved_admin1)
+                if resolved_country and resolved_country.lower() not in [p.lower() for p in parts]:
+                    parts.append(resolved_country)
+                display_name = ", ".join(parts)
             else:
                 display_name = resolved_name
 

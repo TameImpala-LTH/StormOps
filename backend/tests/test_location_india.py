@@ -1055,3 +1055,100 @@ class TestIndiaLocalityArchitecture:
             with pytest.raises(HTTPException) as exc_info:
                 await service.geocode_location("NonExistentPlaceXyz12345")
             assert exc_info.value.status_code == 404
+
+
+class TestNaturalLanguageLocationExtraction:
+    """Test natural-language query entity extraction, explicit qualifier preservation, and session overrides."""
+
+    def test_extraction_preserves_explicit_qualifiers(self):
+        """Rule-based extraction must preserve complete location phrases with explicit qualifiers."""
+        from app.services.query_service import extract_query_entities_rule_based
+
+        cases = {
+            "weather in Park Street, London": "Park Street, London",
+            "weather in Park Street, London today": "Park Street, London",
+            "weather in Park Street, Kolkata": "Park Street, Kolkata",
+            "weather in Ruby More, Kolkata": "Ruby More, Kolkata",
+            "weather in Newtown, West Bengal": "Newtown, West Bengal",
+            "weather today in Newtown, West Bengal": "Newtown, West Bengal",
+            "weather in Bandra, Texas": "Bandra, Texas",
+            "weather in Bandra, Mumbai": "Bandra, Mumbai",
+            "forecast for Park Street, London": "Park Street, London",
+            "Newtown, West Bengal weather": "Newtown, West Bengal",
+        }
+        for query, expected_loc in cases.items():
+            info = extract_query_entities_rule_based(query)
+            assert info.extracted_location == expected_loc, f"For query '{query}', expected '{expected_loc}', got '{info.extracted_location}'"
+
+    @pytest.mark.asyncio
+    async def test_pipeline_cases_a_through_f(self):
+        """Verify full process_query pipeline for cases A through F."""
+        from app.services.query_service import query_service
+
+        # Cases A, B, C, E, F: canonical real-world resolutions
+        cases = [
+            ("A", "weather in Park Street, London", "United Kingdom", "London"),
+            ("B", "weather in Park Street, Kolkata", "India", "Kolkata"),
+            ("C", "weather in Ruby More, Kolkata", "India", "Kolkata"),
+            ("E", "weather in Bandra, Mumbai", "India", "Mumbai"),
+            ("F", "weather today in Newtown, West Bengal", "India", "New Town"),
+        ]
+        for label, q, exp_country, exp_sub in cases:
+            res = await query_service.process_query(q)
+            loc = res.location
+            assert loc is not None, f"Case {label} '{q}' failed to resolve location"
+            assert exp_country.lower() in loc.country.lower(), f"Case {label}: expected country '{exp_country}', got '{loc.country}'"
+            assert exp_sub.lower() in loc.name.lower() or exp_sub.lower() in (loc.admin1 or "").lower(), f"Case {label}: expected substr '{exp_sub}' in name/admin1 '{loc.name}'"
+
+        # Case D: "weather in Bandra, Texas" — non-existent place in Texas:
+        # Resolver MUST NOT silently convert "Bandra" to "Bandera" or fall back to India/Mumbai;
+        # it must clarify rather than invent.
+        res_d = await query_service.process_query("weather in Bandra, Texas")
+        assert res_d.needs_clarification is True
+        assert res_d.location is None
+
+        # Case D2: Real city with explicit Texas qualifier resolves to US / Texas
+        res_d2 = await query_service.process_query("weather in Bandera, Texas")
+        assert res_d2.location is not None
+        assert "United States" in res_d2.location.country
+        assert "Texas" in (res_d2.location.admin1 or "") or "Texas" in res_d2.location.name
+
+    @pytest.mark.asyncio
+    async def test_session_context_cannot_override_explicit_geography(self):
+        """Active session geographic context must NOT erase or override explicit geographic qualifiers."""
+        from app.services.query_service import query_service
+
+        # Case 1: Active session in Kolkata -> query explicitly specifies London
+        sess_kolkata = "test_sess_override_kolkata"
+        r1 = await query_service.process_query("weather in Kolkata", session_id=sess_kolkata)
+        assert "India" in r1.location.country
+
+        r2 = await query_service.process_query("weather in Park Street, London", session_id=sess_kolkata)
+        assert "United Kingdom" in r2.location.country, f"Expected UK, got {r2.location.country}"
+        assert "Kolkata" not in r2.location.name
+
+        # Case 2: Active session in Mumbai -> query explicitly specifies Texas
+        sess_mumbai = "test_sess_override_mumbai"
+        r3 = await query_service.process_query("weather in Mumbai", session_id=sess_mumbai)
+        assert "India" in r3.location.country
+
+        # Query D: Non-existent "Bandra, Texas" under Mumbai session context:
+        # Must NOT fall back to Mumbai or resolve to India; must return clarification.
+        r4 = await query_service.process_query("weather in Bandra, Texas", session_id=sess_mumbai)
+        assert r4.needs_clarification is True
+        assert r4.location is None
+
+        # Real Texas city under Mumbai session context:
+        r5 = await query_service.process_query("weather in Bandera, Texas", session_id=sess_mumbai)
+        assert "United States" in r5.location.country, f"Expected US, got {r5.location.country}"
+        assert "Mumbai" not in r5.location.name
+
+    def test_canonical_display_name_no_duplicates(self):
+        """Display names must never contain duplicate hierarchy tokens like 'India, Maharashtra, India'."""
+        from app.services.india_locality_service import india_locality_service
+
+        rec = india_locality_service.find_locality("Park Street", context_city="Kolkata")
+        assert rec is not None
+        assert rec.name == "Park Street, Kolkata, West Bengal, India"
+        assert "India, India" not in rec.name
+        assert "West Bengal, India, West Bengal" not in rec.name

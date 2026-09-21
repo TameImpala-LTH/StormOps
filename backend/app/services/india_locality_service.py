@@ -78,7 +78,11 @@ class IndiaLocalityRecord:
 
     def to_geocoded_schema(self) -> GeocodedLocationSchema:
         """Convert record to canonical GeocodedLocationSchema."""
-        display_name = f"{self.locality}, {self.parent_city}, {self.parent_state}, India"
+        components = []
+        for part in [self.locality, self.parent_city, self.parent_state, self.country or "India"]:
+            if part and (not components or part.lower() != components[-1].lower()):
+                components.append(part)
+        display_name = ", ".join(components)
         return GeocodedLocationSchema(
             name=display_name,
             country=self.country,
