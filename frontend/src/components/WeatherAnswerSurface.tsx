@@ -116,7 +116,7 @@ function getRecommendationStyle(rec: string): { icon: React.ReactNode; bgColor: 
 }
 
 // Extract a concise, prominent key insight (first clean sentence) from AI summary
-function extractKeyInsight(summaryText: string): string {
+export function extractKeyInsight(summaryText: string): string {
   if (!summaryText) return '';
   const clean = summaryText.trim().replace(/^#+\s+/, '').replace(/^\*+\s+/, '');
   // Match first complete sentence
@@ -127,6 +127,65 @@ function extractKeyInsight(summaryText: string): string {
   const firstLine = clean.split('\n')[0].trim();
   if (firstLine.length <= 180) return firstLine;
   return firstLine.slice(0, 177) + '...';
+}
+
+// Generate an authoritative, deterministic 1-sentence Key Insight answering "What is the one thing I should know?"
+export function generateDeterministicKeyInsight(
+  weather: {
+    temperature: number;
+    condition: string;
+    weather_code: number;
+    precipitation_probability?: number | null;
+    rain_duration_hours?: number;
+    peak_hour?: string | null;
+  } | null,
+  periodLabel: string,
+  decision?: { summary: string; recommendation?: string } | null,
+  rawSummary?: string
+): string {
+  if (decision?.summary) {
+    return decision.summary;
+  }
+  if (!weather) {
+    return rawSummary ? extractKeyInsight(rawSummary) : 'Weather forecast data is currently unavailable for this period.';
+  }
+
+  const p = weather.precipitation_probability ?? 0;
+  const temp = Math.round(weather.temperature);
+  const cond = weather.condition.toLowerCase();
+
+  if (p >= 70) {
+    if (weather.rain_duration_hours && weather.rain_duration_hours <= 2) {
+      return `Isolated showers are likely during ${periodLabel.toLowerCase()} with a peak ${p}% precipitation chance.`;
+    }
+    return `Sustained rain is expected during ${periodLabel.toLowerCase()} (${temp}°C) with a ${p}% peak probability.`;
+  }
+  if (cond.includes('thunder') || weather.weather_code >= 95) {
+    return `Thunderstorm conditions expected during ${periodLabel.toLowerCase()} with gusty winds and possible heavy spells.`;
+  }
+  if (p >= 40) {
+    return `Passing or brief showers are possible during ${periodLabel.toLowerCase()} with a ${p}% rain chance.`;
+  }
+  if (temp >= 38) {
+    return `Intense heat anticipated during ${periodLabel.toLowerCase()}, peaking around ${temp}°C.`;
+  }
+  if (rawSummary) {
+    const extracted = extractKeyInsight(rawSummary);
+    if (extracted && extracted.length >= 12) return extracted;
+  }
+  return `Predominantly ${cond} conditions with temperatures around ${temp}°C during ${periodLabel.toLowerCase()}.`;
+}
+
+// Ensure the Detailed Interpretation does not repeat the exact headline Key Insight
+export function getDeduplicatedSummary(summaryText: string, keyInsight: string): string {
+  if (!summaryText || !keyInsight) return summaryText;
+  const cleanSummary = summaryText.trim();
+  const cleanInsight = keyInsight.trim();
+  if (cleanSummary.startsWith(cleanInsight)) {
+    const rest = cleanSummary.slice(cleanInsight.length).trim();
+    return rest || cleanSummary;
+  }
+  return cleanSummary;
 }
 
 // Weather condition accent styling (distinct from official advisory severity colors)
@@ -357,6 +416,16 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
   };
 
 
+  const isForecastRequested = Boolean(
+    response.period?.is_forecast ||
+    (response.query?.date_context && response.query.date_context !== 'today')
+  );
+
+  const isPeriodUnavailable = isForecastRequested && !period_weather;
+
+  const rawPeriodLabel = period_weather?.period_label || response.period?.label || response.query?.date_context || 'current';
+  const periodTitle = formatPeriodLabel(rawPeriodLabel);
+
   const weather = period_weather ?? {
     temperature: current?.temperature ?? 0,
     feels_like: current?.feels_like ?? 0,
@@ -373,9 +442,14 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
     ? `${location.name}${location.admin1 ? ', ' + location.admin1 : ''}${location.country ? ', ' + location.country : ''}`
     : 'Weather Forecast';
 
-  const periodTitle = formatPeriodLabel(weather.period_label || 'current');
+  const keyInsight = response.key_insight || generateDeterministicKeyInsight(
+    isPeriodUnavailable ? null : weather,
+    periodTitle,
+    decision,
+    summary
+  );
+  const deduplicatedSummary = getDeduplicatedSummary(summary, keyInsight);
 
-  const keyInsight = extractKeyInsight(summary);
   const conditionStyle = getWeatherConditionAccent(
     weather.weather_code,
     weather.temperature,
@@ -722,96 +796,114 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
             </div>
           )}
 
-          {/* 3. Structured metric blocks (visually dominating) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-            {/* Temperature & Feels Like */}
+          {/* 3. Structured metric blocks (visually dominating) or Unavailable State */}
+          {isPeriodUnavailable ? (
             <div
-              className="p-3 rounded-xl border flex flex-col justify-between"
+              className="p-4 rounded-xl border space-y-2"
               style={{
                 backgroundColor: 'var(--surface)',
                 borderColor: 'var(--border-muted)',
               }}
             >
-              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
-                <span>Temperature</span>
-                <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+              <div className="flex items-center gap-2 text-amber-400 font-mono text-xs uppercase font-semibold">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>Forecast Unavailable for {periodTitle}</span>
               </div>
-              <div className="mt-2">
-                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  {Math.round(weather.temperature)}°C
-                </div>
-                <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  Feels like {Math.round(weather.feels_like)}°C
-                </div>
-              </div>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                Authoritative forecast metrics for {periodTitle} could not be calculated from the meteorological feed. Current observation values are strictly not substituted to prevent misinformation.
+              </p>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+              {/* Temperature & Feels Like */}
+              <div
+                className="p-3 rounded-xl border flex flex-col justify-between"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--border-muted)',
+                }}
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Temperature</span>
+                  <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <div className="mt-2">
+                  <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    {Math.round(weather.temperature)}°C
+                  </div>
+                  <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    Feels like {Math.round(weather.feels_like)}°C
+                  </div>
+                </div>
+              </div>
 
-            {/* Precipitation */}
-            <div
-              className="p-3 rounded-xl border flex flex-col justify-between"
-              style={{
-                backgroundColor: 'var(--surface)',
-                borderColor: 'var(--border-muted)',
-              }}
-            >
-              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
-                <span>Precipitation</span>
-                <CloudRain className="w-3.5 h-3.5 text-sky-400" />
-              </div>
-              <div className="mt-2">
-                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  {weather.precipitation_probability}%
+              {/* Precipitation */}
+              <div
+                className="p-3 rounded-xl border flex flex-col justify-between"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--border-muted)',
+                }}
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Precipitation</span>
+                  <CloudRain className="w-3.5 h-3.5 text-sky-400" />
                 </div>
-                <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }} title={weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain')}>
-                  {weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain expected')}
+                <div className="mt-2">
+                  <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    {weather.precipitation_probability}%
+                  </div>
+                  <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }} title={weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain')}>
+                    {weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain expected')}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Humidity */}
-            <div
-              className="p-3 rounded-xl border flex flex-col justify-between"
-              style={{
-                backgroundColor: 'var(--surface)',
-                borderColor: 'var(--border-muted)',
-              }}
-            >
-              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
-                <span>Humidity</span>
-                <Droplets className="w-3.5 h-3.5 text-indigo-400" />
-              </div>
-              <div className="mt-2">
-                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  {weather.humidity}%
+              {/* Humidity */}
+              <div
+                className="p-3 rounded-xl border flex flex-col justify-between"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--border-muted)',
+                }}
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Humidity</span>
+                  <Droplets className="w-3.5 h-3.5 text-indigo-400" />
                 </div>
-                <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {weather.humidity >= 70 ? 'Humid' : weather.humidity >= 40 ? 'Comfortable' : 'Dry'}
+                <div className="mt-2">
+                  <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    {weather.humidity}%
+                  </div>
+                  <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {weather.humidity >= 70 ? 'Humid' : weather.humidity >= 40 ? 'Comfortable' : 'Dry'}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Wind Speed */}
-            <div
-              className="p-3 rounded-xl border flex flex-col justify-between"
-              style={{
-                backgroundColor: 'var(--surface)',
-                borderColor: 'var(--border-muted)',
-              }}
-            >
-              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
-                <span>Wind</span>
-                <Wind className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-              </div>
-              <div className="mt-2">
-                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  {weather.wind_speed} <span className="text-xs font-normal">km/h</span>
+              {/* Wind Speed */}
+              <div
+                className="p-3 rounded-xl border flex flex-col justify-between"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--border-muted)',
+                }}
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Wind</span>
+                  <Wind className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
                 </div>
-                <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-                  {weather.wind_speed >= 30 ? 'Strong wind' : weather.wind_speed >= 15 ? 'Moderate breeze' : 'Light breeze'}
+                <div className="mt-2">
+                  <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    {weather.wind_speed} <span className="text-xs font-normal">km/h</span>
+                  </div>
+                  <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {weather.wind_speed >= 30 ? 'Strong wind' : weather.wind_speed >= 15 ? 'Moderate breeze' : 'Light breeze'}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 4. Full AI-generated summary underneath as secondary narrative */}
           <div
@@ -825,7 +917,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
               className="text-sm font-normal leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              <FormattedMarkdown content={summary} />
+              <FormattedMarkdown content={deduplicatedSummary} />
             </div>
           </div>
         </div>

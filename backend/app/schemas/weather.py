@@ -42,6 +42,7 @@ class HourlyForecast(BaseModel):
     )
     precipitation: float = Field(..., description="Precipitation in mm")
     wind_speed: float = Field(..., description="Wind speed in km/h")
+    humidity: Optional[int] = Field(None, description="Relative humidity percentage (0-100)")
     feels_like: Optional[float] = Field(None, description="Apparent feels-like temperature in Celsius")
 
 

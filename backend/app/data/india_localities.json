@@ -1,0 +1,2946 @@
+[
+  {
+    "locality": "Park Street",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5552,
+    "longitude": 88.3518,
+    "aliases": [
+      "park st",
+      "mother teresa sarani"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Gariahat",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5186,
+    "longitude": 88.3653,
+    "aliases": [
+      "gariahat market",
+      "gariahat junction"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ballygunge",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.528,
+    "longitude": 88.3658,
+    "aliases": [
+      "ballygunj",
+      "balygunge"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Maniktala",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5855,
+    "longitude": 88.3753,
+    "aliases": [
+      "manicktala",
+      "maniktola",
+      "maniktalla"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hatibagan",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5977,
+    "longitude": 88.3721,
+    "aliases": [
+      "hati bagan",
+      "hatibagan market"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Jadavpur",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.4988,
+    "longitude": 88.3718,
+    "aliases": [
+      "jadavpur university",
+      "jadabpur"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Tollygunge",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.4987,
+    "longitude": 88.347,
+    "aliases": [
+      "tollygunj",
+      "tolleygunge"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Behala",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.4988,
+    "longitude": 88.3149,
+    "aliases": [
+      "behala chowrasta",
+      "behala tram depot"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Shibpur",
+    "parent_city": "Howrah",
+    "parent_state": "West Bengal",
+    "district": "Howrah",
+    "subdivision": "Howrah Sadar",
+    "latitude": 22.5685,
+    "longitude": 88.318,
+    "aliases": [
+      "sibpur",
+      "shibpore"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Alipore",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5312,
+    "longitude": 88.3308,
+    "aliases": [
+      "alipur",
+      "alipore zoo"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Shyambazar",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.6044,
+    "longitude": 88.3742,
+    "aliases": [
+      "shambazar",
+      "shyam bazar five point"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bowbazar",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5697,
+    "longitude": 88.3607,
+    "aliases": [
+      "boubazar",
+      "bb ganguly street"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bhawanipore",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5303,
+    "longitude": 88.3476,
+    "aliases": [
+      "bhowanipore",
+      "bhawanipur",
+      "bhowanipur"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dum Dum",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Barrackpore",
+    "latitude": 22.642,
+    "longitude": 88.4312,
+    "aliases": [
+      "dumdum",
+      "dum dum junction"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Sealdah",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5675,
+    "longitude": 88.3707,
+    "aliases": [
+      "sealdah station",
+      "sealdah court"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Esplanade",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5645,
+    "longitude": 88.3522,
+    "aliases": [
+      "esplanade kolkata",
+      "dharmatala esplanade"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kalighat",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5204,
+    "longitude": 88.3431,
+    "aliases": [
+      "kalighat temple",
+      "kalighat metro"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Baghajatin",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.4827,
+    "longitude": 88.3745,
+    "aliases": [
+      "bagha jatin"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kasba",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5167,
+    "longitude": 88.3833,
+    "aliases": [
+      "kasba new market",
+      "bosepukur kasba"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Lake Gardens",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5065,
+    "longitude": 88.3572,
+    "aliases": [
+      "lake garden"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dhakuria",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.509,
+    "longitude": 88.3683,
+    "aliases": [
+      "dhakuria bridge"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Chetla",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5152,
+    "longitude": 88.3364,
+    "aliases": [
+      "chetla central road"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kidderpore",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "Kolkata",
+    "subdivision": "Kolkata",
+    "latitude": 22.5369,
+    "longitude": 88.3242,
+    "aliases": [
+      "khidirpur",
+      "khidderpore"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bandra",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Bandra",
+    "latitude": 19.055,
+    "longitude": 72.8402,
+    "aliases": [
+      "bandra west",
+      "bandra east"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Andheri",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Andheri",
+    "latitude": 19.1136,
+    "longitude": 72.8697,
+    "aliases": [
+      "andheri west",
+      "andheri east"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kurla",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Kurla",
+    "latitude": 19.0726,
+    "longitude": 72.8845,
+    "aliases": [
+      "kurla west",
+      "kurla east",
+      "kurla junction"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Charni Road",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai City",
+    "subdivision": "Girgaon",
+    "latitude": 18.9515,
+    "longitude": 72.8188,
+    "aliases": [
+      "charni rd",
+      "girgaon chowpatty"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Colaba",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai City",
+    "subdivision": "Colaba",
+    "latitude": 18.9067,
+    "longitude": 72.8147,
+    "aliases": [
+      "colaba causeway"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Juhu",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Andheri",
+    "latitude": 19.1075,
+    "longitude": 72.8263,
+    "aliases": [
+      "juhu beach",
+      "juhu scheme"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dadar",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai City",
+    "subdivision": "Dadar",
+    "latitude": 19.0178,
+    "longitude": 72.8478,
+    "aliases": [
+      "dadar west",
+      "dadar east",
+      "dadar tt"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Borivali",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Borivali",
+    "latitude": 19.2307,
+    "longitude": 72.8567,
+    "aliases": [
+      "borivali west",
+      "borivali east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Powai",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Kurla",
+    "latitude": 19.1176,
+    "longitude": 72.906,
+    "aliases": [
+      "hiranandani powai",
+      "powai lake"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Worli",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai City",
+    "subdivision": "Worli",
+    "latitude": 19.0166,
+    "longitude": 72.8167,
+    "aliases": [
+      "worli sea face"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Marine Drive",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai City",
+    "subdivision": "Nariman Point",
+    "latitude": 18.944,
+    "longitude": 72.823,
+    "aliases": [
+      "marine lines",
+      "queen's necklace"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ghatkopar",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Kurla",
+    "latitude": 19.086,
+    "longitude": 72.909,
+    "aliases": [
+      "ghatkopar west",
+      "ghatkopar east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Malad",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Borivali",
+    "latitude": 19.1874,
+    "longitude": 72.8484,
+    "aliases": [
+      "malad west",
+      "malad east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Chembur",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Kurla",
+    "latitude": 19.0622,
+    "longitude": 72.8997,
+    "aliases": [
+      "chembur east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Vile Parle",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Andheri",
+    "latitude": 19.0998,
+    "longitude": 72.8436,
+    "aliases": [
+      "vile parle west",
+      "vile parle east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Santacruz",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Bandra",
+    "latitude": 19.0843,
+    "longitude": 72.836,
+    "aliases": [
+      "santacruz west",
+      "santacruz east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bandra Kurla Complex",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Bandra",
+    "latitude": 19.0657,
+    "longitude": 72.8687,
+    "aliases": [
+      "bkc"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kandivali",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Borivali",
+    "latitude": 19.2045,
+    "longitude": 72.8522,
+    "aliases": [
+      "kandivali west",
+      "kandivali east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Goregaon",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Borivali",
+    "latitude": 19.1663,
+    "longitude": 72.8526,
+    "aliases": [
+      "goregaon west",
+      "goregaon east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Mulund",
+    "parent_city": "Mumbai",
+    "parent_state": "Maharashtra",
+    "district": "Mumbai Suburban",
+    "subdivision": "Kurla",
+    "latitude": 19.1726,
+    "longitude": 72.9565,
+    "aliases": [
+      "mulund west",
+      "mulund east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Koramangala",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9352,
+    "longitude": 77.6245,
+    "aliases": [
+      "koramangala 5th block",
+      "koramangala 4th block",
+      "koramangala 6th block"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Indiranagar",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru East",
+    "latitude": 12.9784,
+    "longitude": 77.6408,
+    "aliases": [
+      "indira nagar",
+      "100 ft road indiranagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Basavanagudi",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9422,
+    "longitude": 77.5756,
+    "aliases": [
+      "basavanagudi bull temple",
+      "dvk road basavanagudi"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Frazer Town",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru North",
+    "latitude": 12.9982,
+    "longitude": 77.6158,
+    "aliases": [
+      "pulakeshinagar",
+      "fraser town"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Whitefield",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru East",
+    "latitude": 12.9698,
+    "longitude": 77.75,
+    "aliases": [
+      "itpl whitefield"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Jayanagar",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9308,
+    "longitude": 77.5838,
+    "aliases": [
+      "jayanagar 4th block",
+      "jayanagar 3rd block"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "HSR Layout",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9121,
+    "longitude": 77.6446,
+    "aliases": [
+      "hsr",
+      "hsr sector 1",
+      "hsr sector 2"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Electronic City",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Anekal",
+    "latitude": 12.8399,
+    "longitude": 77.677,
+    "aliases": [
+      "electronic city phase 1",
+      "electronic city phase 2",
+      "e-city"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Marathahalli",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru East",
+    "latitude": 12.9591,
+    "longitude": 77.6974,
+    "aliases": [
+      "marathahalli bridge"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bellandur",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru East",
+    "latitude": 12.9304,
+    "longitude": 77.6784,
+    "aliases": [
+      "bellandur gate",
+      "bellandur lake"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Malleshwaram",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru North",
+    "latitude": 13.0031,
+    "longitude": 77.5643,
+    "aliases": [
+      "malleswaram",
+      "malleswaram 8th cross"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hebbal",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru North",
+    "latitude": 13.0358,
+    "longitude": 77.597,
+    "aliases": [
+      "hebbal flyover",
+      "hebbal lake"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "BTM Layout",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9166,
+    "longitude": 77.6101,
+    "aliases": [
+      "btm",
+      "btm 2nd stage"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Rajajinagar",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru North",
+    "latitude": 12.9915,
+    "longitude": 77.5525,
+    "aliases": [
+      "rajaji nagar"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Banashankari",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru South",
+    "latitude": 12.9255,
+    "longitude": 77.5468,
+    "aliases": [
+      "bsk",
+      "banashankari 2nd stage"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Yelahanka",
+    "parent_city": "Bengaluru",
+    "parent_state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "subdivision": "Bengaluru North",
+    "latitude": 13.1007,
+    "longitude": 77.5963,
+    "aliases": [
+      "yelahanka new town"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Maninagar",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Maninagar",
+    "latitude": 22.9978,
+    "longitude": 72.6044,
+    "aliases": [
+      "maninagar railway station",
+      "kankaria maninagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Navrangpura",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Ahmedabad City",
+    "latitude": 23.0373,
+    "longitude": 72.5534,
+    "aliases": [
+      "navrangpura bus stand",
+      "c g road navrangpura"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Satellite",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Ahmedabad City",
+    "latitude": 23.03,
+    "longitude": 72.518,
+    "aliases": [
+      "satellite road",
+      "ramdevnagar satellite"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Vastrapur",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Ahmedabad City",
+    "latitude": 23.035,
+    "longitude": 72.529,
+    "aliases": [
+      "vastrapur lake"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Bodakdev",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Ahmedabad City",
+    "latitude": 23.039,
+    "longitude": 72.511,
+    "aliases": [
+      "bodakdev sg highway"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Prahlad Nagar",
+    "parent_city": "Ahmedabad",
+    "parent_state": "Gujarat",
+    "district": "Ahmedabad",
+    "subdivision": "Vejalpur",
+    "latitude": 23.013,
+    "longitude": 72.508,
+    "aliases": [
+      "prahladnagar",
+      "prahlad nagar garden"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Malviya Nagar",
+    "parent_city": "Jaipur",
+    "parent_state": "Rajasthan",
+    "district": "Jaipur",
+    "subdivision": "Sanganer",
+    "latitude": 26.853,
+    "longitude": 75.805,
+    "aliases": [
+      "malviya nagar jaipur",
+      "gaurav tower malviya nagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Vaishali Nagar",
+    "parent_city": "Jaipur",
+    "parent_state": "Rajasthan",
+    "district": "Jaipur",
+    "subdivision": "Jaipur",
+    "latitude": 26.908,
+    "longitude": 75.742,
+    "aliases": [
+      "vaishali nagar jaipur"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "C Scheme",
+    "parent_city": "Jaipur",
+    "parent_state": "Rajasthan",
+    "district": "Jaipur",
+    "subdivision": "Jaipur",
+    "latitude": 26.912,
+    "longitude": 75.802,
+    "aliases": [
+      "c-scheme",
+      "c scheme jaipur"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Mansarovar",
+    "parent_city": "Jaipur",
+    "parent_state": "Rajasthan",
+    "district": "Jaipur",
+    "subdivision": "Sanganer",
+    "latitude": 26.858,
+    "longitude": 75.764,
+    "aliases": [
+      "mansarovar jaipur"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Raja Park",
+    "parent_city": "Jaipur",
+    "parent_state": "Rajasthan",
+    "district": "Jaipur",
+    "subdivision": "Jaipur",
+    "latitude": 26.898,
+    "longitude": 75.828,
+    "aliases": [
+      "rajapark jaipur"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Aliganj",
+    "parent_city": "Lucknow",
+    "parent_state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "subdivision": "Lucknow",
+    "latitude": 26.892,
+    "longitude": 80.943,
+    "aliases": [
+      "aliganj lucknow",
+      "purania aliganj"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hazratganj",
+    "parent_city": "Lucknow",
+    "parent_state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "subdivision": "Lucknow",
+    "latitude": 26.85,
+    "longitude": 80.95,
+    "aliases": [
+      "hazrat ganj",
+      "ganj lucknow"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Gomti Nagar",
+    "parent_city": "Lucknow",
+    "parent_state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "subdivision": "Lucknow",
+    "latitude": 26.85,
+    "longitude": 81.0,
+    "aliases": [
+      "gomtinagar",
+      "gomti nagar extension"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Indira Nagar",
+    "parent_city": "Lucknow",
+    "parent_state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "subdivision": "Lucknow",
+    "latitude": 26.883,
+    "longitude": 80.99,
+    "aliases": [
+      "indiranagar lucknow"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Patia",
+    "parent_city": "Bhubaneswar",
+    "parent_state": "Odisha",
+    "district": "Khordha",
+    "subdivision": "Bhubaneswar",
+    "latitude": 20.354,
+    "longitude": 85.818,
+    "aliases": [
+      "kiit patia",
+      "patia station"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Saheed Nagar",
+    "parent_city": "Bhubaneswar",
+    "parent_state": "Odisha",
+    "district": "Khordha",
+    "subdivision": "Bhubaneswar",
+    "latitude": 20.288,
+    "longitude": 85.845,
+    "aliases": [
+      "shahid nagar",
+      "saheed nagar bhubaneswar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Nayapalli",
+    "parent_city": "Bhubaneswar",
+    "parent_state": "Odisha",
+    "district": "Khordha",
+    "subdivision": "Bhubaneswar",
+    "latitude": 20.3,
+    "longitude": 85.817,
+    "aliases": [
+      "irc village nayapalli"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Jayadev Vihar",
+    "parent_city": "Bhubaneswar",
+    "parent_state": "Odisha",
+    "district": "Khordha",
+    "subdivision": "Bhubaneswar",
+    "latitude": 20.305,
+    "longitude": 85.825,
+    "aliases": [
+      "jaydev vihar"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Doranda",
+    "parent_city": "Ranchi",
+    "parent_state": "Jharkhand",
+    "district": "Ranchi",
+    "subdivision": "Ranchi",
+    "latitude": 23.332,
+    "longitude": 85.325,
+    "aliases": [
+      "doranda ranchi",
+      "ag colony doranda"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Morabadi",
+    "parent_city": "Ranchi",
+    "parent_state": "Jharkhand",
+    "district": "Ranchi",
+    "subdivision": "Ranchi",
+    "latitude": 23.385,
+    "longitude": 85.334,
+    "aliases": [
+      "morhabadi",
+      "morabadi ground"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Lalpur",
+    "parent_city": "Ranchi",
+    "parent_state": "Jharkhand",
+    "district": "Ranchi",
+    "subdivision": "Ranchi",
+    "latitude": 23.368,
+    "longitude": 85.34,
+    "aliases": [
+      "lalpur chowk"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Harmu",
+    "parent_city": "Ranchi",
+    "parent_state": "Jharkhand",
+    "district": "Ranchi",
+    "subdivision": "Ranchi",
+    "latitude": 23.354,
+    "longitude": 85.308,
+    "aliases": [
+      "harmu housing colony"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Pan Bazar",
+    "parent_city": "Guwahati",
+    "parent_state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "subdivision": "Guwahati",
+    "latitude": 26.186,
+    "longitude": 91.75,
+    "aliases": [
+      "panbazar",
+      "panbazar guwahati"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dispur",
+    "parent_city": "Guwahati",
+    "parent_state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "subdivision": "Guwahati",
+    "latitude": 26.143,
+    "longitude": 91.79,
+    "aliases": [
+      "dispur capital",
+      "dispur secretariat"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Paltan Bazaar",
+    "parent_city": "Guwahati",
+    "parent_state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "subdivision": "Guwahati",
+    "latitude": 26.178,
+    "longitude": 91.753,
+    "aliases": [
+      "paltan bazar"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ganeshguri",
+    "parent_city": "Guwahati",
+    "parent_state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "subdivision": "Guwahati",
+    "latitude": 26.151,
+    "longitude": 91.782,
+    "aliases": [
+      "ganeshguri flyover"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Connaught Place",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "New Delhi",
+    "subdivision": "Chanakyapuri",
+    "latitude": 28.6315,
+    "longitude": 77.2167,
+    "aliases": [
+      "cp",
+      "connaught circus",
+      "rajiv chowk"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hauz Khas",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South Delhi",
+    "subdivision": "Hauz Khas",
+    "latitude": 28.5494,
+    "longitude": 77.2001,
+    "aliases": [
+      "hauz khas village",
+      "hkv"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Saket",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South Delhi",
+    "subdivision": "Saket",
+    "latitude": 28.5244,
+    "longitude": 77.2102,
+    "aliases": [
+      "saket district centre",
+      "select citywalk saket"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Rohini",
+    "parent_city": "Delhi",
+    "parent_state": "Delhi",
+    "district": "North West Delhi",
+    "subdivision": "Rohini",
+    "latitude": 28.7495,
+    "longitude": 77.0565,
+    "aliases": [
+      "rohini sector 7",
+      "rohini sector 8",
+      "rohini sector 13"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dwarka",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South West Delhi",
+    "subdivision": "Dwarka",
+    "latitude": 28.5921,
+    "longitude": 77.046,
+    "aliases": [
+      "dwarka sector 10",
+      "dwarka sub city"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Karol Bagh",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "Central Delhi",
+    "subdivision": "Karol Bagh",
+    "latitude": 28.6514,
+    "longitude": 77.1907,
+    "aliases": [
+      "karolbagh",
+      "gフロ market karol bagh"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Lajpat Nagar",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South East Delhi",
+    "subdivision": "Defence Colony",
+    "latitude": 28.5677,
+    "longitude": 77.2433,
+    "aliases": [
+      "lajpat nagar central market",
+      "lajpat nagar 2"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Lajpat Nagar 4",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South East Delhi",
+    "subdivision": "Defence Colony",
+    "latitude": 28.563,
+    "longitude": 77.245,
+    "aliases": [
+      "lajpat nagar iv",
+      "amar colony lajpat nagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Civil Lines",
+    "parent_city": "Delhi",
+    "parent_state": "Delhi",
+    "district": "North Delhi",
+    "subdivision": "Civil Lines",
+    "latitude": 28.6816,
+    "longitude": 77.2227,
+    "aliases": [
+      "civil lines delhi"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Vasant Kunj",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South West Delhi",
+    "subdivision": "Vasant Vihar",
+    "latitude": 28.5293,
+    "longitude": 77.1541,
+    "aliases": [
+      "vasantkunj"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Chanakyapuri",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "New Delhi",
+    "subdivision": "Chanakyapuri",
+    "latitude": 28.5983,
+    "longitude": 77.1896,
+    "aliases": [
+      "diplomatic enclave chanakyapuri"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Greater Kailash",
+    "parent_city": "New Delhi",
+    "parent_state": "Delhi",
+    "district": "South Delhi",
+    "subdivision": "Hauz Khas",
+    "latitude": 28.5482,
+    "longitude": 77.2344,
+    "aliases": [
+      "gk",
+      "gk 1",
+      "gk 2",
+      "greater kailash 1",
+      "greater kailash 2"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Chandni Chowk",
+    "parent_city": "Delhi",
+    "parent_state": "Delhi",
+    "district": "North Delhi",
+    "subdivision": "Kotwali",
+    "latitude": 28.6506,
+    "longitude": 77.2303,
+    "aliases": [
+      "old delhi chandni chowk"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "T Nagar",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Guindy",
+    "latitude": 13.0418,
+    "longitude": 80.2341,
+    "aliases": [
+      "t. nagar",
+      "thyagaraya nagar",
+      "pondv bazaar t nagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Adyar",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Velachery",
+    "latitude": 13.0067,
+    "longitude": 80.2571,
+    "aliases": [
+      "adyar bridge",
+      "gandhi nagar adyar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Velachery",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Velachery",
+    "latitude": 12.9815,
+    "longitude": 80.218,
+    "aliases": [
+      "velacheri"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Anna Nagar",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Aminjikarai",
+    "latitude": 13.085,
+    "longitude": 80.21,
+    "aliases": [
+      "anna nagar west",
+      "anna nagar east"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Mylapore",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Mylapore",
+    "latitude": 13.0368,
+    "longitude": 80.2676,
+    "aliases": [
+      "kapaleeshwarar mylapore"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Nungambakkam",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Egmore",
+    "latitude": 13.0569,
+    "longitude": 80.2425,
+    "aliases": [
+      "nungambakkam high road"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Thiruvanmiyur",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Velachery",
+    "latitude": 12.983,
+    "longitude": 80.2594,
+    "aliases": [
+      "thiruvanmiyur beach"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Guindy",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Guindy",
+    "latitude": 13.0067,
+    "longitude": 80.2025,
+    "aliases": [
+      "guindy industrial estate",
+      "guindy national park"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Triplicane",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Mylapore",
+    "latitude": 13.0587,
+    "longitude": 80.2757,
+    "aliases": [
+      "thiruvallikeni",
+      "triplicane high road"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Sowcarpet",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Fort Tondiarpet",
+    "latitude": 13.097,
+    "longitude": 80.28,
+    "aliases": [
+      "sowcarpet market"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hitec City",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Rangareddy",
+    "subdivision": "Serilingampally",
+    "latitude": 17.4435,
+    "longitude": 78.3772,
+    "aliases": [
+      "cyberabad",
+      "hitech city",
+      "madhapur hitec"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Gachibowli",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Rangareddy",
+    "subdivision": "Serilingampally",
+    "latitude": 17.4401,
+    "longitude": 78.3489,
+    "aliases": [
+      "gachibowli stadium"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Jubilee Hills",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Shaikpet",
+    "latitude": 17.4319,
+    "longitude": 78.4073,
+    "aliases": [
+      "road no 36 jubilee hills",
+      "jubilee hills check post"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Banjara Hills",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Khairatabad",
+    "latitude": 17.4156,
+    "longitude": 78.435,
+    "aliases": [
+      "road no 1 banjara hills",
+      "banjara hills road 12"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Madhapur",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Rangareddy",
+    "subdivision": "Serilingampally",
+    "latitude": 17.4483,
+    "longitude": 78.3915,
+    "aliases": [
+      "madhapur metro"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kondapur",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Rangareddy",
+    "subdivision": "Serilingampally",
+    "latitude": 17.4699,
+    "longitude": 78.3578,
+    "aliases": [
+      "kondapur rto"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Secunderabad",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Secunderabad",
+    "latitude": 17.4399,
+    "longitude": 78.4983,
+    "aliases": [
+      "secunderabad railway station",
+      "twin cities secunderabad"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kukatpally",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Medchal-Malkajgiri",
+    "subdivision": "Kukatpally",
+    "latitude": 17.4947,
+    "longitude": 78.3996,
+    "aliases": [
+      "kphb colony",
+      "kukatpally housing board"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ameerpet",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Ameerpet",
+    "latitude": 17.4375,
+    "longitude": 78.4482,
+    "aliases": [
+      "ameerpet metro",
+      "ameerpet crossroads"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Mehdipatnam",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Asifnagar",
+    "latitude": 17.3916,
+    "longitude": 78.4385,
+    "aliases": [
+      "mehdipatnam bus stand"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kothrud",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5074,
+    "longitude": 73.8077,
+    "aliases": [
+      "kothrud stand",
+      "paud road kothrud"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Viman Nagar",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5679,
+    "longitude": 73.9143,
+    "aliases": [
+      "vimannagar",
+      "phoenix marketcity viman nagar"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hinjewadi",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Mulshi",
+    "latitude": 18.5913,
+    "longitude": 73.7389,
+    "aliases": [
+      "hinjawadi",
+      "hinjewadi phase 1",
+      "hinjewadi it park"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Baner",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.559,
+    "longitude": 73.7868,
+    "aliases": [
+      "baner road",
+      "baner pashan link road"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Wakad",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Mulshi",
+    "latitude": 18.5987,
+    "longitude": 73.7686,
+    "aliases": [
+      "dange chowk wakad"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Aundh",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.558,
+    "longitude": 73.8074,
+    "aliases": [
+      "aundh bremen circle"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Hadapsar",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5089,
+    "longitude": 73.926,
+    "aliases": [
+      "hadapsar gadital",
+      "hadapsar bypass"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kalyani Nagar",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5463,
+    "longitude": 73.9034,
+    "aliases": [
+      "kalyaninagar"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Koregaon Park",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5362,
+    "longitude": 73.894,
+    "aliases": [
+      "kp pune",
+      "north main road koregaon park"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Magarpatta",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5147,
+    "longitude": 73.9298,
+    "aliases": [
+      "magarpatta city",
+      "cybercity magarpatta"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Shivajinagar",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.5308,
+    "longitude": 73.8475,
+    "aliases": [
+      "shivaji nagar pune",
+      "jm road shivajinagar"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Edappally",
+    "parent_city": "Kochi",
+    "parent_state": "Kerala",
+    "district": "Ernakulam",
+    "subdivision": "Kanayannur",
+    "latitude": 10.0236,
+    "longitude": 76.3116,
+    "aliases": [
+      "lulu mall edappally",
+      "idappally",
+      "edappally toll"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Fort Kochi",
+    "parent_city": "Kochi",
+    "parent_state": "Kerala",
+    "district": "Ernakulam",
+    "subdivision": "Kochi",
+    "latitude": 9.9658,
+    "longitude": 76.2421,
+    "aliases": [
+      "fort cochin",
+      "old kochi"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kakkanad",
+    "parent_city": "Kochi",
+    "parent_state": "Kerala",
+    "district": "Ernakulam",
+    "subdivision": "Kanayannur",
+    "latitude": 10.0159,
+    "longitude": 76.3419,
+    "aliases": [
+      "infopark kakkanad",
+      "smartcity kakkanad"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Palarivattom",
+    "parent_city": "Kochi",
+    "parent_state": "Kerala",
+    "district": "Ernakulam",
+    "subdivision": "Kanayannur",
+    "latitude": 10.0056,
+    "longitude": 76.3075,
+    "aliases": [
+      "palarivattom bypass",
+      "palarivattom junction"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Kankarbagh",
+    "parent_city": "Patna",
+    "parent_state": "Bihar",
+    "district": "Patna",
+    "subdivision": "Patna Sadar",
+    "latitude": 25.5941,
+    "longitude": 85.1589,
+    "aliases": [
+      "kankar bagh",
+      "kankarbagh colony"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Boring Road",
+    "parent_city": "Patna",
+    "parent_state": "Bihar",
+    "district": "Patna",
+    "subdivision": "Patna Sadar",
+    "latitude": 25.6186,
+    "longitude": 85.1192,
+    "aliases": [
+      "boring canal road",
+      "boring road crossing"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Fraser Road",
+    "parent_city": "Patna",
+    "parent_state": "Bihar",
+    "district": "Patna",
+    "subdivision": "Patna Sadar",
+    "latitude": 25.609,
+    "longitude": 85.1375,
+    "aliases": [
+      "frazer road",
+      "dak bunglow chowk"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Rajendra Nagar",
+    "parent_city": "Patna",
+    "parent_state": "Bihar",
+    "district": "Patna",
+    "subdivision": "Patna Sadar",
+    "latitude": 25.598,
+    "longitude": 85.165,
+    "aliases": [
+      "rajendra nagar terminal"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Sector 17",
+    "parent_city": "Chandigarh",
+    "parent_state": "Chandigarh",
+    "district": "Chandigarh",
+    "subdivision": "Chandigarh",
+    "latitude": 30.7398,
+    "longitude": 76.7827,
+    "aliases": [
+      "sector 17 plaza",
+      "chandigarh sector 17"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Vijay Nagar",
+    "parent_city": "Indore",
+    "parent_state": "Madhya Pradesh",
+    "district": "Indore",
+    "subdivision": "Indore",
+    "latitude": 22.7533,
+    "longitude": 75.8937,
+    "aliases": [
+      "vijaynagar indore"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "MP Nagar",
+    "parent_city": "Bhopal",
+    "parent_state": "Madhya Pradesh",
+    "district": "Bhopal",
+    "subdivision": "Huzur",
+    "latitude": 23.2332,
+    "longitude": 77.4343,
+    "aliases": [
+      "maharana pratap nagar",
+      "mp nagar zone 1",
+      "mp nagar zone 2"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "MVP Colony",
+    "parent_city": "Visakhapatnam",
+    "parent_state": "Andhra Pradesh",
+    "district": "Visakhapatnam",
+    "subdivision": "Visakhapatnam Urban",
+    "latitude": 17.742,
+    "longitude": 83.335,
+    "aliases": [
+      "mvp sector 1",
+      "mvp double road"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Alkapuri",
+    "parent_city": "Vadodara",
+    "parent_state": "Gujarat",
+    "district": "Vadodara",
+    "subdivision": "Vadodara",
+    "latitude": 22.3107,
+    "longitude": 73.1705,
+    "aliases": [
+      "rc dutt road alkapuri"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Athwa",
+    "parent_city": "Surat",
+    "parent_state": "Gujarat",
+    "district": "Surat",
+    "subdivision": "Majura",
+    "latitude": 21.171,
+    "longitude": 72.805,
+    "aliases": [
+      "athwalines",
+      "athwagate"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "RS Puram",
+    "parent_city": "Coimbatore",
+    "parent_state": "Tamil Nadu",
+    "district": "Coimbatore",
+    "subdivision": "Coimbatore South",
+    "latitude": 11.0089,
+    "longitude": 76.949,
+    "aliases": [
+      "rathinasabapathipuram",
+      "db road rs puram"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Assi Ghat",
+    "parent_city": "Varanasi",
+    "parent_state": "Uttar Pradesh",
+    "district": "Varanasi",
+    "subdivision": "Varanasi",
+    "latitude": 25.2885,
+    "longitude": 83.0062,
+    "aliases": [
+      "assighat",
+      "assi crossing"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Rajpur Road",
+    "parent_city": "Dehradun",
+    "parent_state": "Uttarakhand",
+    "district": "Dehradun",
+    "subdivision": "Dehradun",
+    "latitude": 30.34,
+    "longitude": 78.065,
+    "aliases": [
+      "rajpur rd dehradun"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Ranjit Avenue",
+    "parent_city": "Amritsar",
+    "parent_state": "Punjab",
+    "district": "Amritsar",
+    "subdivision": "Amritsar-I",
+    "latitude": 31.656,
+    "longitude": 74.862,
+    "aliases": [
+      "ranjit ave block b"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Howrah",
+    "parent_city": "Howrah",
+    "parent_state": "West Bengal",
+    "district": "Howrah",
+    "subdivision": "Howrah",
+    "latitude": 22.5958,
+    "longitude": 88.2636,
+    "aliases": [
+      "howrah station",
+      "howrah city"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Barasat",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Barasat Sadar",
+    "latitude": 22.7214,
+    "longitude": 88.4831,
+    "aliases": [
+      "barasat kolkata"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Barrackpore",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Barrackpore",
+    "latitude": 22.7634,
+    "longitude": 88.3752,
+    "aliases": [
+      "barrackpore cantonment"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dakshineswar",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Barrackpore",
+    "latitude": 22.6534,
+    "longitude": 88.3582,
+    "aliases": [
+      "dakshineswar kali temple"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Batanagar",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "South 24 Parganas",
+    "subdivision": "Alipore Sadar",
+    "latitude": 22.5028,
+    "longitude": 88.2325,
+    "aliases": [
+      "batanagar maheshtala"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Shyamnagar",
+    "parent_city": "Kolkata",
+    "parent_state": "West Bengal",
+    "district": "North 24 Parganas",
+    "subdivision": "Barrackpore",
+    "latitude": 22.8294,
+    "longitude": 88.3965,
+    "aliases": [],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Gurugram",
+    "parent_city": "Gurugram",
+    "parent_state": "Haryana",
+    "district": "Gurugram",
+    "subdivision": "Gurugram",
+    "latitude": 28.4595,
+    "longitude": 77.0266,
+    "aliases": [
+      "gurgaon",
+      "cyber city gurugram"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Noida",
+    "parent_city": "Noida",
+    "parent_state": "Uttar Pradesh",
+    "district": "Gautam Buddha Nagar",
+    "subdivision": "Dadri",
+    "latitude": 28.5355,
+    "longitude": 77.391,
+    "aliases": [
+      "noida sec",
+      "new okhla"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Indirapuram",
+    "parent_city": "Ghaziabad",
+    "parent_state": "Uttar Pradesh",
+    "district": "Ghaziabad",
+    "subdivision": "Ghaziabad",
+    "latitude": 28.6415,
+    "longitude": 77.3714,
+    "aliases": [
+      "indirapuram ghaziabad"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Alwarpet",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Mylapore",
+    "latitude": 13.0336,
+    "longitude": 80.252,
+    "aliases": [
+      "alwarpet chennai"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Besant Nagar",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Mylapore",
+    "latitude": 13.0003,
+    "longitude": 80.2667,
+    "aliases": [
+      "elliots beach",
+      "besant nagar beach"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Tambaram",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chengalpattu",
+    "subdivision": "Tambaram",
+    "latitude": 12.9249,
+    "longitude": 80.129,
+    "aliases": [
+      "tambaram sanatorium"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Porur",
+    "parent_city": "Chennai",
+    "parent_state": "Tamil Nadu",
+    "district": "Chennai",
+    "subdivision": "Maduravoyal",
+    "latitude": 13.0382,
+    "longitude": 80.1565,
+    "aliases": [
+      "porur junction"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Begumpet",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Secunderabad",
+    "latitude": 17.4447,
+    "longitude": 78.4664,
+    "aliases": [
+      "begumpet airport"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Charminar",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Charminar",
+    "latitude": 17.3616,
+    "longitude": 78.4747,
+    "aliases": [
+      "old city hyderabad"
+    ],
+    "confidence": 0.99,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Dilsukhnagar",
+    "parent_city": "Hyderabad",
+    "parent_state": "Telangana",
+    "district": "Hyderabad",
+    "subdivision": "Saroornagar",
+    "latitude": 17.3688,
+    "longitude": 78.5247,
+    "aliases": [
+      "dilsukhnagar hyderabad"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Pimpri",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.6279,
+    "longitude": 73.8009,
+    "aliases": [
+      "pimpri chinchwad"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "locality": "Chinchwad",
+    "parent_city": "Pune",
+    "parent_state": "Maharashtra",
+    "district": "Pune",
+    "subdivision": "Haveli",
+    "latitude": 18.6364,
+    "longitude": 73.7885,
+    "aliases": [
+      "chinchwad station"
+    ],
+    "confidence": 0.98,
+    "source": "canonical_urban_index",
+    "country": "India",
+    "country_code": "IN",
+    "timezone": "Asia/Kolkata"
+  }
+]

@@ -24,6 +24,8 @@ from app.services.geocoding_service import (
     INDIAN_STATE_TO_CANONICAL,
 )
 from app.schemas.query import GeocodedLocationSchema
+from app.services.india_locality_service import india_locality_service
+from fastapi import HTTPException
 
 
 # ---------------------------------------------------------------------------
@@ -481,3 +483,575 @@ class TestIndiaAwareGeocoding:
         assert (result.admin1 or "").lower() == "west bengal"
         assert (result.state or "").lower() == "west bengal"
         assert "India" in result.country
+
+    # TC-20: Fresh session — "Park Street" without prior context resolves to Kolkata, West Bengal
+    @pytest.mark.asyncio
+    async def test_tc20_fresh_session_park_street(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        nom_item = {
+            "name": "Park Street",
+            "lat": "22.5551",
+            "lon": "88.3501",
+            "address": {
+                "suburb": "Dharmatala",
+                "city": "Kolkata",
+                "state_district": "Kolkata",
+                "state": "West Bengal",
+                "country": "India",
+                "country_code": "in",
+            },
+        }
+        nom_resp = MagicMock()
+        nom_resp.status_code = 200
+        nom_resp.json.return_value = [nom_item]
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=nom_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Park Street")
+
+        assert result.country_code == "IN"
+        assert result.state == "West Bengal"
+        assert result.city == "Kolkata"
+        assert result.locality == "Park Street"
+        assert "Park Street" in result.name
+        assert "Kolkata" in result.name
+        assert result.timezone == "Asia/Kolkata"
+
+    # TC-21: Fresh session — "Gariahat" without prior context resolves to Kolkata, West Bengal
+    @pytest.mark.asyncio
+    async def test_tc21_fresh_session_gariahat(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        nom_item = {
+            "name": "Gariahat",
+            "lat": "22.5197",
+            "lon": "88.3654",
+            "address": {
+                "suburb": "Ballygunge",
+                "city": "Kolkata",
+                "state_district": "Kolkata",
+                "state": "West Bengal",
+                "country": "India",
+                "country_code": "in",
+            },
+        }
+        nom_resp = MagicMock()
+        nom_resp.status_code = 200
+        nom_resp.json.return_value = [nom_item]
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=nom_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Gariahat")
+
+        assert result.country_code == "IN"
+        assert result.state == "West Bengal"
+        assert result.city == "Kolkata"
+        assert result.locality == "Gariahat"
+        assert "Gariahat" in result.name
+
+    # TC-22: Fresh session — "Bandra" without prior context resolves to Mumbai, Maharashtra
+    @pytest.mark.asyncio
+    async def test_tc22_fresh_session_bandra(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        nom_item = {
+            "name": "Bandra",
+            "lat": "19.0550",
+            "lon": "72.8402",
+            "address": {
+                "suburb": "Khar",
+                "city": "Mumbai",
+                "state_district": "Mumbai Suburban District",
+                "state": "Maharashtra",
+                "country": "India",
+                "country_code": "in",
+            },
+        }
+        nom_resp = MagicMock()
+        nom_resp.status_code = 200
+        nom_resp.json.return_value = [nom_item]
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=nom_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Bandra")
+
+        assert result.country_code == "IN"
+        assert result.state == "Maharashtra"
+        assert result.city == "Mumbai"
+        assert result.locality == "Bandra"
+        assert "Bandra" in result.name
+
+    # TC-23: Fresh session — "Koramangala" without prior context resolves to Bengaluru, Karnataka
+    @pytest.mark.asyncio
+    async def test_tc23_fresh_session_koramangala(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        nom_item = {
+            "name": "Koramangala",
+            "lat": "12.9357",
+            "lon": "77.6241",
+            "address": {
+                "suburb": "Koramangala",
+                "city": "Bengaluru",
+                "state_district": "Bengaluru Urban",
+                "state": "Karnataka",
+                "country": "India",
+                "country_code": "in",
+            },
+        }
+        nom_resp = MagicMock()
+        nom_resp.status_code = 200
+        nom_resp.json.return_value = [nom_item]
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=nom_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Koramangala")
+
+        assert result.country_code == "IN"
+        assert result.state == "Karnataka"
+        assert result.city == "Bengaluru"
+        assert result.locality == "Koramangala"
+        assert "Koramangala" in result.name
+
+    # TC-24: Explicit override wins over Indian locality default ("Park Street, London")
+    @pytest.mark.asyncio
+    async def test_tc24_explicit_qualifier_override_london(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        om_item = _om_result(
+            name="Park Street",
+            country="United Kingdom",
+            country_code="GB",
+            admin1="England",
+            lat=51.7167,
+            lon=-0.3333,
+        )
+        om_resp = _make_mock_response([om_item])
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Park Street, London")
+
+        assert result.country_code == "GB"
+        assert "United Kingdom" in result.country
+
+    # TC-25: Contextual resolution with prior session context
+    @pytest.mark.asyncio
+    async def test_tc25_contextual_resolution_with_session(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        session_loc = GeocodedLocationSchema(
+            name="Kolkata, West Bengal, India",
+            country="India",
+            country_code="IN",
+            admin1="West Bengal",
+            state="West Bengal",
+            city="Kolkata",
+            latitude=22.5726,
+            longitude=88.3639,
+            timezone="Asia/Kolkata",
+        )
+
+        nom_item = {
+            "name": "Jadavpur",
+            "lat": "22.4988",
+            "lon": "88.3718",
+            "address": {
+                "suburb": "Jadavpur",
+                "city": "Kolkata",
+                "state_district": "Kolkata",
+                "state": "West Bengal",
+                "country": "India",
+                "country_code": "in",
+            },
+        }
+        nom_resp = MagicMock()
+        nom_resp.status_code = 200
+        nom_resp.json.return_value = [nom_item]
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=nom_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Jadavpur", context_location=session_loc)
+
+        assert result.country_code == "IN"
+        assert result.state == "West Bengal"
+        assert result.city == "Kolkata"
+
+    # TC-26: Explicit qualifier overrides active session context
+    @pytest.mark.asyncio
+    async def test_tc26_explicit_override_active_session_context(self):
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        session_loc = GeocodedLocationSchema(
+            name="Kolkata, West Bengal, India",
+            country="India",
+            country_code="IN",
+            admin1="West Bengal",
+            state="West Bengal",
+            city="Kolkata",
+            latitude=22.5726,
+            longitude=88.3639,
+            timezone="Asia/Kolkata",
+        )
+
+        om_item = _om_result(
+            name="Boston",
+            country="United States",
+            country_code="US",
+            admin1="Massachusetts",
+            lat=42.3601,
+            lon=-71.0589,
+        )
+        om_resp = _make_mock_response([om_item])
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Boston, USA", context_location=session_loc)
+
+        assert result.country_code == "US"
+        assert "United States" in result.country
+        assert result.city == "Boston"
+
+
+# ---------------------------------------------------------------------------
+# Phase 21: Dedicated India Locality Architecture & Acceptance Test Suite
+# ---------------------------------------------------------------------------
+
+class TestIndiaLocalityArchitecture:
+    """Comprehensive test suite verifying the 8-stage India-first locality architecture."""
+
+    # 1. Fresh-session Indian locality resolution (all 9 acceptance regions, 27 localities)
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "locality,expected_city,expected_state",
+        [
+            # Kolkata
+            ("Park Street", "Kolkata", "West Bengal"),
+            ("Gariahat", "Kolkata", "West Bengal"),
+            ("Maniktala", "Kolkata", "West Bengal"),
+            ("Hatibagan", "Kolkata", "West Bengal"),
+            ("Jadavpur", "Kolkata", "West Bengal"),
+            ("Tollygunge", "Kolkata", "West Bengal"),
+            ("Behala", "Kolkata", "West Bengal"),
+            # Mumbai
+            ("Bandra", "Mumbai", "Maharashtra"),
+            ("Andheri", "Mumbai", "Maharashtra"),
+            ("Kurla", "Mumbai", "Maharashtra"),
+            ("Charni Road", "Mumbai", "Maharashtra"),
+            # Bengaluru
+            ("Koramangala", "Bengaluru", "Karnataka"),
+            ("Indiranagar", "Bengaluru", "Karnataka"),
+            ("Basavanagudi", "Bengaluru", "Karnataka"),
+            ("Frazer Town", "Bengaluru", "Karnataka"),
+            # Ahmedabad
+            ("Maninagar", "Ahmedabad", "Gujarat"),
+            ("Navrangpura", "Ahmedabad", "Gujarat"),
+            # Jaipur
+            ("Malviya Nagar", "Jaipur", "Rajasthan"),
+            ("Vaishali Nagar", "Jaipur", "Rajasthan"),
+            # Lucknow
+            ("Aliganj", "Lucknow", "Uttar Pradesh"),
+            ("Hazratganj", "Lucknow", "Uttar Pradesh"),
+            # Bhubaneswar
+            ("Patia", "Bhubaneswar", "Odisha"),
+            ("Saheed Nagar", "Bhubaneswar", "Odisha"),
+            # Ranchi
+            ("Doranda", "Ranchi", "Jharkhand"),
+            ("Morabadi", "Ranchi", "Jharkhand"),
+            # Guwahati
+            ("Pan Bazar", "Guwahati", "Assam"),
+            ("Dispur", "Guwahati", "Assam"),
+        ],
+    )
+    async def test_fresh_session_acceptance_localities(self, locality, expected_city, expected_state):
+        """Verify each acceptance locality resolves to the correct city, state, country in a fresh session."""
+        geocode_cache_clear()
+        service = GeocodingService()
+        result = await service.geocode_location(locality, context_location=None)
+
+        assert result.country_code == "IN", f"Expected IN for '{locality}', got {result.country_code}"
+        assert (result.city or "").lower() == expected_city.lower(), f"Expected city {expected_city}, got {result.city}"
+        assert (result.state or "").lower() == expected_state.lower(), f"Expected state {expected_state}, got {result.state}"
+        assert result.latitude != 0.0
+        assert result.longitude != 0.0
+        assert result.timezone == "Asia/Kolkata"
+
+    # 2. Indian locality vs foreign duplicate
+    @pytest.mark.asyncio
+    async def test_foreign_duplicate_rejection(self):
+        """Verify Indian localities are not overridden by foreign homonyms or misplaced states."""
+        service = GeocodingService()
+        for loc, city, state in [
+            ("Maniktala", "Kolkata", "West Bengal"),
+            ("Patia", "Bhubaneswar", "Odisha"),
+            ("Doranda", "Ranchi", "Jharkhand"),
+            ("Basavanagudi", "Bengaluru", "Karnataka"),
+        ]:
+            geocode_cache_clear()
+            res = await service.geocode_location(loc, context_location=None)
+            assert res.country_code == "IN"
+            assert (res.state or "").lower() == state.lower()
+            assert (res.city or "").lower() == city.lower()
+
+    # 3. Explicit country override
+    @pytest.mark.asyncio
+    async def test_explicit_country_override(self):
+        """Explicit country qualifier 'Park Street, UK' resolves to United Kingdom."""
+        geocode_cache_clear()
+        service = GeocodingService()
+        om_resp = _make_mock_response([
+            _om_result("Park Street", "United Kingdom", "GB", "England", 51.7167, -0.3333)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Park Street, UK")
+
+        assert result.country_code == "GB"
+        assert "United Kingdom" in result.country
+
+    # 4. Explicit state override
+    @pytest.mark.asyncio
+    async def test_explicit_state_override(self):
+        """Explicit state qualifier 'Newtown, Pennsylvania' resolves to US, while 'Newtown, West Bengal' resolves to IN."""
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        # US query
+        om_resp_us = _make_mock_response([
+            _om_result("Newtown", "United States", "US", "Pennsylvania", 40.229, -74.937)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp_us)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            res_us = await service.geocode_location("Newtown, Pennsylvania")
+
+        assert res_us.country_code == "US"
+        assert (res_us.state or "").lower() == "pennsylvania"
+
+        # India query
+        geocode_cache_clear()
+        om_resp_in = _make_mock_response([
+            _om_result("New Town", "India", "IN", "West Bengal", 22.589, 88.482)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp_in)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            res_in = await service.geocode_location("Newtown, West Bengal")
+
+        assert res_in.country_code == "IN"
+        assert (res_in.state or "").lower() == "west bengal"
+
+    # 5. Explicit city override
+    @pytest.mark.asyncio
+    async def test_explicit_city_override(self):
+        """'Park Street, London' must resolve to London, UK rather than being hijacked by Indian Park Street."""
+        geocode_cache_clear()
+        service = GeocodingService()
+        om_resp = _make_mock_response([
+            _om_result("Park Street", "United Kingdom", "GB", "England", 51.7167, -0.3333)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            result = await service.geocode_location("Park Street, London")
+
+        assert result.country_code == "GB"
+        assert "United Kingdom" in result.country
+
+    # 6. Session context
+    @pytest.mark.asyncio
+    async def test_session_context_preservation(self):
+        """Session context enhances resolution of contextual queries."""
+        geocode_cache_clear()
+        service = GeocodingService()
+        kolkata_ctx = GeocodedLocationSchema(
+            name="Kolkata, West Bengal, India",
+            country="India",
+            country_code="IN",
+            city="Kolkata",
+            state="West Bengal",
+            latitude=22.57,
+            longitude=88.36,
+            timezone="Asia/Kolkata",
+        )
+        res = await service.geocode_location("Park Street", context_location=kolkata_ctx)
+        assert res.country_code == "IN"
+        assert res.city == "Kolkata"
+
+    # 7. Context override
+    @pytest.mark.asyncio
+    async def test_context_override_by_explicit_geography(self):
+        """Explicit geography strictly overrides conflicting session context (e.g. Mumbai context + Bandra, Texas)."""
+        geocode_cache_clear()
+        service = GeocodingService()
+        mumbai_ctx = GeocodedLocationSchema(
+            name="Mumbai, Maharashtra, India",
+            country="India",
+            country_code="IN",
+            city="Mumbai",
+            state="Maharashtra",
+            latitude=19.07,
+            longitude=72.87,
+            timezone="Asia/Kolkata",
+        )
+        om_resp = _make_mock_response([
+            _om_result("Bandra", "United States", "US", "Texas", 29.7, -99.0)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            res = await service.geocode_location("Bandra, Texas", context_location=mumbai_ctx)
+
+        assert res.country_code == "US"
+        assert res.state == "Texas"
+
+    # 8. Administrative hierarchy validation
+    def test_administrative_hierarchy_validation(self):
+        """Administrative validation directly rejects false foreign homonyms or mismatched states."""
+        # Case A: Maniktala in Bangladesh -> must be rejected
+        bangladesh_loc = GeocodedLocationSchema(
+            name="Maniktala, Bangladesh",
+            country="Bangladesh",
+            country_code="BD",
+            city="Maniktala",
+            latitude=22.8,
+            longitude=89.5,
+        )
+        assert not india_locality_service.validate_administrative_hierarchy(bangladesh_loc, "Maniktala")
+
+        # Case B: Basavanagudi in Andhra Pradesh -> must be rejected (known in Karnataka)
+        ap_loc = GeocodedLocationSchema(
+            name="Basavanagudi, Andhra Pradesh, India",
+            country="India",
+            country_code="IN",
+            state="Andhra Pradesh",
+            city="Basavanagudi",
+            latitude=13.0,
+            longitude=78.0,
+        )
+        assert not india_locality_service.validate_administrative_hierarchy(ap_loc, "Basavanagudi")
+
+        # Case C: Correct administrative hierarchy -> accepted
+        valid_loc = GeocodedLocationSchema(
+            name="Basavanagudi, Bengaluru, Karnataka, India",
+            country="India",
+            country_code="IN",
+            state="Karnataka",
+            city="Bengaluru",
+            latitude=12.9422,
+            longitude=77.5756,
+        )
+        assert india_locality_service.validate_administrative_hierarchy(valid_loc, "Basavanagudi")
+
+    # 9. Cache isolation
+    @pytest.mark.asyncio
+    async def test_cache_isolation_between_homonyms(self):
+        """Confirm cache keys for 'Park Street' (IN) and 'Park Street, London' (GB) are strictly isolated."""
+        geocode_cache_clear()
+        service = GeocodingService()
+
+        # 1. Resolve Indian Park Street
+        res_in = await service.geocode_location("Park Street", context_location=None)
+        assert res_in.country_code == "IN"
+
+        # 2. Mock Open-Meteo for Park Street, London
+        om_resp = _make_mock_response([
+            _om_result("Park Street", "United Kingdom", "GB", "England", 51.7167, -0.3333)
+        ])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=om_resp)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            res_gb = await service.geocode_location("Park Street, London")
+
+        assert res_gb.country_code == "GB"
+
+        # 3. Query Park Street again — must hit cache and return IN, not contaminated by GB
+        res_in_again = await service.geocode_location("Park Street", context_location=None)
+        assert res_in_again.country_code == "IN"
+        assert res_in_again.city == "Kolkata"
+
+    # 10. Genuine ambiguity handling
+    @pytest.mark.asyncio
+    async def test_genuine_ambiguity_and_unknown_location(self):
+        """Verify that multi-city localities disambiguate via session context, and unresolvable queries raise 404."""
+        service = GeocodingService()
+
+        # Indira Nagar in Bengaluru context
+        bengaluru_ctx = GeocodedLocationSchema(
+            name="Bengaluru, Karnataka, India",
+            country="India",
+            country_code="IN",
+            city="Bengaluru",
+            state="Karnataka",
+            latitude=12.97,
+            longitude=77.59,
+        )
+        res_blr = await service.geocode_location("Indira Nagar", context_location=bengaluru_ctx)
+        assert res_blr.city == "Bengaluru"
+
+        # Indira Nagar in Lucknow context
+        lucknow_ctx = GeocodedLocationSchema(
+            name="Lucknow, Uttar Pradesh, India",
+            country="India",
+            country_code="IN",
+            city="Lucknow",
+            state="Uttar Pradesh",
+            latitude=26.85,
+            longitude=80.95,
+        )
+        res_lko = await service.geocode_location("Indira Nagar", context_location=lucknow_ctx)
+        assert res_lko.city == "Lucknow"
+
+        # Unknown gibberish query raises 404
+        geocode_cache_clear()
+        empty_om = _make_mock_response([])
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get = AsyncMock(return_value=empty_om)
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            with pytest.raises(HTTPException) as exc_info:
+                await service.geocode_location("NonExistentPlaceXyz12345")
+            assert exc_info.value.status_code == 404

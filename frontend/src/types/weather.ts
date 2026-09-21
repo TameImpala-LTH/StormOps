@@ -81,6 +81,13 @@ export interface GeocodedLocationSchema {
   timezone: string;
 }
 
+export interface WeatherPeriodInfo {
+  type: 'current' | 'today' | 'tomorrow' | 'weekend' | 'specific_day' | string;
+  label: string;
+  date?: string | null;
+  is_forecast: boolean;
+}
+
 export interface TargetPeriodWeather {
   period_label: string;
   temperature: number;
@@ -185,6 +192,7 @@ export interface QueryResponse {
   query: ExtractedQueryInfo;
   location?: GeocodedLocationSchema | null;
   current?: CurrentWeather | null;
+  period?: WeatherPeriodInfo | null;
   period_weather?: TargetPeriodWeather | null;
   period_forecast?: HourlyForecast[] | null;
   forecast?: HourlyForecast[] | null;
@@ -193,6 +201,7 @@ export interface QueryResponse {
   environmental_events?: EnvironmentalEvent[] | null;
   comparison?: ComparisonResponse | null;
   summary: string;
+  key_insight?: string | null;
   official_advisories?: import('./advisory').OfficialAdvisory[] | null;
   needs_clarification?: boolean;
   language?: 'en' | 'hi' | 'bn' | string;

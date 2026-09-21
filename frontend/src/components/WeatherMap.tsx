@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { useTheme } from '../context/ThemeContext';
 import { GeocodedLocationSchema, TargetPeriodWeather } from '../types/weather';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
-import { MapPin, Compass, Maximize2, Minimize2, ShieldAlert } from 'lucide-react';
+import { MapPin, Compass, Maximize2, Minimize2, ShieldAlert, Sun, Moon } from 'lucide-react';
 
 export interface WeatherMapProps {
   location: GeocodedLocationSchema;
@@ -320,11 +320,41 @@ function getTileFilter(theme: string, darkVariant: string): string {
   return 'brightness(0.48) invert(1) hue-rotate(180deg) saturate(0.55) contrast(0.88)';
 }
 
+// Layered atmospheric overlay rendered in a dedicated Leaflet pane (zIndex 250).
+// Sits strictly above tilePane (200) and strictly below overlayPane (400) and markerPane (600).
+// Preserves official advisory polygon colors and ensures road labels remain crisp and readable.
+function applyAtmosphericOverlay(map: L.Map, effectiveTheme: string, darkVariant: string) {
+  const atmoPane = map.getPane('atmosphericPane');
+  if (!atmoPane) return;
+
+  if (effectiveTheme === 'light') {
+    atmoPane.style.display = 'none';
+    atmoPane.style.background = 'none';
+    return;
+  }
+
+  atmoPane.style.display = 'block';
+  atmoPane.style.pointerEvents = 'none';
+  atmoPane.style.mixBlendMode = 'color';
+
+  if (effectiveTheme === 'night') {
+    atmoPane.style.background =
+      'radial-gradient(ellipse at 50% 50%, rgba(88, 28, 135, 0.28) 0%, rgba(49, 46, 129, 0.16) 60%, rgba(15, 23, 42, 0.35) 100%)';
+  } else if (darkVariant === 'vandal') {
+    atmoPane.style.background =
+      'radial-gradient(ellipse at 50% 50%, rgba(136, 19, 55, 0.28) 0%, rgba(88, 28, 135, 0.16) 60%, rgba(15, 23, 42, 0.38) 100%)';
+  } else {
+    atmoPane.style.background =
+      'radial-gradient(ellipse at 50% 50%, rgba(14, 116, 144, 0.24) 0%, rgba(30, 58, 138, 0.14) 60%, rgba(15, 23, 42, 0.32) 100%)';
+  }
+}
+
 function applyTileFilter(map: L.Map, theme: string, darkVariant: string) {
   const pane = map.getPane('tilePane');
   if (pane) {
     (pane as HTMLElement).style.filter = getTileFilter(theme, darkVariant);
   }
+  applyAtmosphericOverlay(map, theme, darkVariant);
 }
 
 
@@ -566,6 +596,27 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAdvisories, setShowAdvisories] = useState(true);
 
+  // Map-specific Light / Dark mode toggle (persisted in localStorage)
+  const [mapMode, setMapMode] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('stormops_map_mode');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch {}
+    return theme === 'light' ? 'light' : 'dark';
+  });
+
+  const toggleMapMode = useCallback(() => {
+    setMapMode((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('stormops_map_mode', next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const effectiveTheme = mapMode === 'light' ? 'light' : (theme === 'light' ? 'dark' : theme);
+
   // Filter advisories that have valid geometry AND are not expired
   const advisoriesWithGeom = useMemo(() => {
     return (advisories || []).filter(
@@ -753,10 +804,22 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         attributionControl: true,
       });
 
+      // Atmospheric pane (zIndex 250 sits strictly between tilePane at 200 and overlayPane at 400)
+      map.createPane('atmosphericPane');
+      const atmoPane = map.getPane('atmosphericPane');
+      if (atmoPane) {
+        atmoPane.style.zIndex = '250';
+        atmoPane.style.pointerEvents = 'none';
+        atmoPane.style.position = 'absolute';
+        atmoPane.style.inset = '0';
+        atmoPane.style.width = '100%';
+        atmoPane.style.height = '100%';
+      }
+
       const tileLayer = L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
       tileLayerRef.current = tileLayer;
 
-      applyTileFilter(map, theme, darkVariant);
+      applyTileFilter(map, effectiveTheme, darkVariant);
 
       // Marker A
       const customIconA = L.divIcon({
@@ -1032,14 +1095,14 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   }, [showAdvisories, mapReady]);
 
   // ---------------------------------------------------------------------------
-  // Theme change — update tile filter + invalidateSize
+  // Theme or Map Mode change — update tile filter & atmospheric overlay + invalidateSize
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!tileLayerRef.current || !mapInstanceRef.current) return;
     tileLayerRef.current.setUrl(TILE_URL);
-    applyTileFilter(mapInstanceRef.current, theme, darkVariant);
+    applyTileFilter(mapInstanceRef.current, effectiveTheme, darkVariant);
     mapInstanceRef.current.invalidateSize();
-  }, [theme, darkVariant]);
+  }, [effectiveTheme, darkVariant]);
 
   // ---------------------------------------------------------------------------
   // Fullscreen toggle — invalidate size after CSS transition completes
@@ -1108,6 +1171,27 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
               </span>
             </button>
           )}
+
+          {/* Map Light / Dark Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleMapMode}
+            className="inline-flex items-center justify-center p-1.5 rounded-lg text-[11px] font-mono border cursor-pointer transition-colors"
+            style={{
+              backgroundColor: 'var(--surface-elevated)',
+              borderColor: 'var(--border-muted)',
+              color: 'var(--text-secondary)',
+            }}
+            title={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
+            aria-label={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
+          >
+            {mapMode === 'dark' ? (
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-indigo-400" />
+            )}
+          </button>
+
           <button
             type="button"
             onClick={handleRecenter}
@@ -1136,7 +1220,30 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         style={{ border: '1px solid var(--border)' }}
       >
         <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+        {/* Leaflet Control Stack — Sun/Moon Map Mode Toggle directly underneath zoom controls */}
+        <div className="absolute top-[80px] left-[10px] z-[1000]">
+          <button
+            type="button"
+            onClick={toggleMapMode}
+            className="w-[30px] h-[30px] flex items-center justify-center rounded-[4px] border transition-colors cursor-pointer shadow-md"
+            style={{
+              backgroundColor: 'var(--surface-elevated)',
+              borderColor: 'var(--border-muted)',
+              color: 'var(--text-primary)',
+            }}
+            title={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
+            aria-label={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
+          >
+            {mapMode === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-400" />
+            )}
+          </button>
+        </div>
       </div>
+
     </div>
   );
 };

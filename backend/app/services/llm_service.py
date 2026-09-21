@@ -255,13 +255,17 @@ class LLMService:
             "CRITICAL RULE: You MUST strictly ground your response in the provided weather data and decision recommendation.\n"
             "DO NOT invent, hallucinate, or assume any weather temperatures, rainfall, wind speeds, or conditions.\n"
             "DO NOT override or contradict the decision engine recommendation.\n"
+            "GROUNDING & DATA MANDATE:\n"
+            "- Authoritative meteorological data for the requested location and period IS FULLY PROVIDED in 'retrieved_meteorological_data'.\n"
+            "- You MUST synthesize and interpret this provided data. DO NOT apologize, claim data is missing, or state that forecast data is unavailable.\n"
             "PRECIPITATION INTERPRETATION GUIDANCE:\n"
             "- 'precipitation_probability' in the data is the PEAK HOURLY probability. DO NOT present peak hourly probability as certainty for an entire day.\n"
             "- If 'rain_duration_hours' is 1 or 2, describe it as passing or isolated showers (e.g. 'An isolated shower is possible around the afternoon, with a peak hourly rain chance of 80%').\n"
             "- If 'rain_duration_hours' >= 3, describe it as sustained rain across several hours.\n"
             "- If 'precipitation_probability' < 40% and 'total_precipitation' < 0.1 mm, state that conditions remain predominantly dry.\n"
-            "If any required weather data is missing or unavailable, explicitly state that it is unavailable.\n"
-            "Provide a concise, helpful, data-grounded response answering the user's question without dumping irrelevant metrics."
+            "DETAILED INTERPRETATION INSTRUCTIONS:\n"
+            "- Synthesize the combination of: (1) temperature and feels-like comfort (explaining whether humidity makes it feel warmer or wind makes it feel cooler), (2) precipitation likelihood, duration, and rain amount, (3) humidity and wind strength, and (4) practical advice for activities.\n"
+            "- Write a cohesive, informative narrative without raw metric dumping or generic apologies."
         )
 
         content_payload = {

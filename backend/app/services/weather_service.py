@@ -429,6 +429,7 @@ class WeatherService:
             precip_probs = hourly_raw.get("precipitation_probability", [])
             precips = hourly_raw.get("precipitation", [])
             winds = hourly_raw.get("wind_speed_10m", [])
+            humidities = hourly_raw.get("relative_humidity_2m", [])
 
             hourly_items = []
             max_idx = min(len(times), hours)
@@ -445,6 +446,11 @@ class WeatherService:
                     if (i < len(apparent_temps) and apparent_temps[i] is not None)
                     else float(temperatures[i])
                 )
+                hum = (
+                    int(humidities[i])
+                    if (i < len(humidities) and humidities[i] is not None)
+                    else None
+                )
 
                 item = HourlyForecast(
                     time=str(times[i]),
@@ -455,6 +461,7 @@ class WeatherService:
                     precipitation_probability=prob,
                     precipitation=float(precips[i]),
                     wind_speed=float(winds[i]),
+                    humidity=hum,
                 )
                 hourly_items.append(item)
 

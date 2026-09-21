@@ -62,6 +62,15 @@ class GeocodedLocationSchema(BaseModel):
     timezone: str = Field("UTC", description="Resolved timezone name")
 
 
+class WeatherPeriodInfo(BaseModel):
+    """Authoritative temporal descriptor for query response."""
+
+    type: str = Field(..., description="'current' | 'today' | 'tomorrow' | 'weekend' | 'specific_day'")
+    label: str = Field(..., description="Human-readable period label, e.g. 'Tomorrow', 'Today evening'")
+    date: Optional[str] = Field(None, description="ISO date string for target date, e.g. '2026-09-22'")
+    is_forecast: bool = Field(False, description="True if period represents a future forecast")
+
+
 class TargetPeriodWeather(BaseModel):
     """Normalized weather metrics for the user's selected date and time period."""
 
@@ -85,6 +94,7 @@ class QueryResponse(BaseModel):
     query: ExtractedQueryInfo
     location: Optional[GeocodedLocationSchema] = Field(None, description="Resolved location coordinates if available")
     current: Optional[CurrentWeather] = Field(None, description="Current weather data if available")
+    period: Optional[WeatherPeriodInfo] = Field(None, description="Authoritative temporal period descriptor")
     period_weather: Optional[TargetPeriodWeather] = Field(None, description="Normalized weather metrics for selected period")
     period_forecast: Optional[List[HourlyForecast]] = Field(None, description="Hourly forecast items matching requested date and time period")
     forecast: Optional[List[HourlyForecast]] = Field(None, description="24-hour forecast items if applicable")
@@ -94,6 +104,7 @@ class QueryResponse(BaseModel):
     official_advisories: Optional[List[AdvisoryResponse]] = Field(default_factory=list, description="Active official hazard advisories for resolved location")
     comparison: Optional[ComparisonResponse] = Field(None, description="Structured dual-location weather comparison if applicable")
     summary: str = Field(..., description="Grounded natural language interpretation or clarification request")
+    key_insight: Optional[str] = Field(None, description="Concise one-sentence key weather takeaway")
     needs_clarification: bool = Field(False, description="True if missing location or required information")
     language: str = Field("en", description="Active response language code ('en', 'hi', 'bn')")
     session_id: Optional[str] = Field(None, description="Session ID used for context tracking")

@@ -2,12 +2,15 @@
 
 import asyncio
 from datetime import datetime, timezone
+import logging
 import re
 from typing import Any, Dict, Optional
 from fastapi import HTTPException
 
+logger = logging.getLogger(__name__)
+
 from app.schemas.decision import DecisionResponse
-from app.schemas.query import ExtractedQueryInfo, GeocodedLocationSchema, QueryResponse, TargetPeriodWeather
+from app.schemas.query import ExtractedQueryInfo, GeocodedLocationSchema, QueryResponse, TargetPeriodWeather, WeatherPeriodInfo
 from app.services.alert_service import alert_engine_service
 from app.services.comparison_service import comparison_engine_service
 from app.services.decision_service import decision_engine_service
@@ -819,7 +822,16 @@ class QueryService:
             SESSION_CONTEXT[sess_key]["location"] = geocoded
         elif target_location_name:
             try:
-                geocoded = await geocoding_service.geocode_location(target_location_name)
+                ctx_loc = session_data.get("location")
+                if ctx_loc is not None:
+                    try:
+                        geocoded = await geocoding_service.geocode_location(
+                            target_location_name, context_location=ctx_loc
+                        )
+                    except TypeError:
+                        geocoded = await geocoding_service.geocode_location(target_location_name)
+                else:
+                    geocoded = await geocoding_service.geocode_location(target_location_name)
                 SESSION_CONTEXT[sess_key]["location"] = geocoded
             except HTTPException:
                 return QueryResponse(
@@ -905,11 +917,37 @@ class QueryService:
             time_period=query_info.time_period,
         )
 
+        target_date_str: Optional[str] = None
+        if period_metrics.matching_items:
+            try:
+                target_date_str = period_metrics.matching_items[0].time.split("T")[0]
+            except Exception:
+                target_date_str = None
+
+        is_future_forecast = (
+            query_info.date_context != "today"
+            or query_info.time_period not in ["current", "now"]
+        )
+
+        period_type = (
+            query_info.date_context
+            if query_info.date_context != "today"
+            else ("current" if query_info.time_period in ["current", "now"] else "today")
+        )
+
+        period_info = WeatherPeriodInfo(
+            type=period_type,
+            label=period_metrics.period_label,
+            date=target_date_str,
+            is_forecast=is_future_forecast,
+        )
+
         if period_metrics.has_missing_data:
             return QueryResponse(
                 query=query_info,
                 location=geocoded,
                 current=curr,
+                period=period_info,
                 period_weather=None,
                 period_forecast=[],
                 forecast=forecast_res.hourly[:24],
@@ -939,6 +977,8 @@ class QueryService:
 
         weather_summary_data = {
             "target_period": period_metrics.period_label,
+            "is_forecast": is_future_forecast,
+            "target_date": target_date_str,
             "temperature": period_metrics.temperature,
             "feels_like": period_metrics.feels_like,
             "condition": period_metrics.condition,
@@ -950,8 +990,11 @@ class QueryService:
             "rain_duration_hours": period_metrics.rain_duration_hours,
             "peak_hour": period_metrics.peak_hour,
             "total_precipitation": period_metrics.total_precipitation,
-            "observation_time": curr.time,
         }
+        if not is_future_forecast:
+            weather_summary_data["observation_time"] = curr.time
+        else:
+            weather_summary_data["forecast_period"] = period_metrics.period_label
 
         # Step 6: Decision Engine & Alert Evaluation
         decision: Optional[DecisionResponse] = None
@@ -994,8 +1037,37 @@ class QueryService:
                 target_language=active_lang,
             )
 
-        if not summary:
-            summary = multilingual_service.generate_localized_summary(
+        # Weather Grounding Safety Invariant:
+        # If structured weather data exists, REJECT any LLM unavailable-data apologies or hallucinations.
+        def _is_apology_or_unavailable(text: Optional[str]) -> bool:
+            if not text or len(text.strip()) < 10:
+                return True
+            lowered = text.lower()
+            apology_markers = [
+                "not available in the information i have",
+                "is not available in the information",
+                "not available in the data",
+                "data is not available",
+                "weather data for tomorrow in",
+                "weather data for today in",
+                "i'm sorry, but the weather data",
+                "i am sorry, but the weather data",
+                "i do not have access to the weather",
+                "cannot provide the weather",
+                "forecast is currently unavailable",
+                "information is not available",
+                "do not have the forecast",
+                "cannot provide weather",
+            ]
+            return any(marker in lowered for marker in apology_markers)
+
+        if not summary or _is_apology_or_unavailable(summary):
+            if summary and _is_apology_or_unavailable(summary):
+                logger.warning(
+                    "LLM summary contained an unavailable-data apology while structured data was present. "
+                    "Rejecting apology and generating authoritative detailed interpretation."
+                )
+            summary = multilingual_service.generate_detailed_interpretation(
                 language=active_lang,
                 query_info=query_info,
                 location_name=loc_display,
@@ -1009,7 +1081,25 @@ class QueryService:
                 decision=decision,
                 rain_duration_hours=period_metrics.rain_duration_hours,
                 peak_hour=period_metrics.peak_hour,
+                total_precip=period_metrics.total_precipitation,
+                period_label=period_metrics.period_label,
             )
+
+        key_insight = multilingual_service.generate_key_insight(
+            language=active_lang,
+            query_info=query_info,
+            location_name=loc_display,
+            temp=period_metrics.temperature,
+            feels_like=period_metrics.feels_like,
+            condition=period_metrics.condition,
+            humidity=period_metrics.humidity,
+            wind_speed=period_metrics.wind_speed,
+            precip_prob=period_metrics.precipitation_probability,
+            precip=period_metrics.precipitation,
+            decision=decision,
+            period_label=period_metrics.period_label,
+            rain_duration_hours=period_metrics.rain_duration_hours,
+        )
 
         env_events = event_service.get_location_events(geocoded.name)
 
@@ -1017,6 +1107,7 @@ class QueryService:
             query=query_info,
             location=geocoded,
             current=curr,
+            period=period_info,
             period_weather=target_period_weather,
             period_forecast=period_metrics.matching_items,
             forecast=forecast_res.hourly[:24],
@@ -1024,6 +1115,7 @@ class QueryService:
             alerts=alerts,
             environmental_events=env_events,
             summary=summary,
+            key_insight=key_insight,
             needs_clarification=False,
             language=active_lang,
             session_id=sess_key,

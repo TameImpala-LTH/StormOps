@@ -271,13 +271,23 @@ class DecisionEngineService:
                 weather_code = dominant_code
                 condition = dominant_item.condition
 
+            humidity_items = [
+                item.humidity for item in matching_items
+                if getattr(item, "humidity", None) is not None
+            ]
+            period_humidity = (
+                round(sum(humidity_items) / len(humidity_items))
+                if humidity_items
+                else (current.humidity or 60)
+            )
+
             return PeriodWeatherMetrics(
                 temperature=avg_temp,
                 feels_like=avg_feels_like,
                 precipitation=precip,
                 precipitation_probability=precip_prob,
                 wind_speed=wind_speed,
-                humidity=current.humidity or 60,
+                humidity=period_humidity,
                 weather_code=weather_code,
                 condition=condition,
                 period_label=period_label,

@@ -5,12 +5,13 @@ import logging
 import re
 import unicodedata
 from collections import OrderedDict
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import HTTPException
 import httpx
 
 from app.schemas.query import GeocodedLocationSchema
+from app.services.india_locality_service import india_locality_service
 
 logger = logging.getLogger(__name__)
 
@@ -336,6 +337,138 @@ INDIAN_METRO_QUALIFIERS: "frozenset[str]" = frozenset({
     "noida", "kochi", "cochin", "dehradun", "siliguri", "mangalore",
 })
 
+# Curated dictionary of prominent Indian urban localities mapping to (metro/city, state, country_code)
+# Enables zero-context resolution on fresh sessions for prominent neighbourhoods across India.
+INDIAN_PROMINENT_LOCALITIES: Dict[str, Tuple[str, str, str]] = {
+    # Kolkata & Greater Kolkata Urban Localities & Suburbs
+    "park street": ("Kolkata", "West Bengal", "IN"),
+    "gariahat": ("Kolkata", "West Bengal", "IN"),
+    "ballygunge": ("Kolkata", "West Bengal", "IN"),
+    "jadavpur": ("Kolkata", "West Bengal", "IN"),
+    "tollygunge": ("Kolkata", "West Bengal", "IN"),
+    "behala": ("Kolkata", "West Bengal", "IN"),
+    "dum dum": ("Kolkata", "West Bengal", "IN"),
+    "dumdum": ("Kolkata", "West Bengal", "IN"),
+    "alipore": ("Kolkata", "West Bengal", "IN"),
+    "shyambazar": ("Kolkata", "West Bengal", "IN"),
+    "howrah": ("Howrah", "West Bengal", "IN"),
+    "esplanade": ("Kolkata", "West Bengal", "IN"),
+    "kalighat": ("Kolkata", "West Bengal", "IN"),
+    "sealdah": ("Kolkata", "West Bengal", "IN"),
+    "bowbazar": ("Kolkata", "West Bengal", "IN"),
+    "bhawanipore": ("Kolkata", "West Bengal", "IN"),
+    "bhowanipore": ("Kolkata", "West Bengal", "IN"),
+    "barasat": ("Kolkata", "West Bengal", "IN"),
+    "baghajatin": ("Kolkata", "West Bengal", "IN"),
+    "kasba": ("Kolkata", "West Bengal", "IN"),
+    "lake gardens": ("Kolkata", "West Bengal", "IN"),
+    "dhakuria": ("Kolkata", "West Bengal", "IN"),
+    "chetla": ("Kolkata", "West Bengal", "IN"),
+    "khidirpur": ("Kolkata", "West Bengal", "IN"),
+    "kidderpore": ("Kolkata", "West Bengal", "IN"),
+    "barrackpore": ("Kolkata", "West Bengal", "IN"),
+    "dakshineswar": ("Kolkata", "West Bengal", "IN"),
+    "batanagar": ("Kolkata", "West Bengal", "IN"),
+    "shyamnagar": ("Kolkata", "West Bengal", "IN"),
+
+    # Mumbai Localities
+    "bandra": ("Mumbai", "Maharashtra", "IN"),
+    "andheri": ("Mumbai", "Maharashtra", "IN"),
+    "juhu": ("Mumbai", "Maharashtra", "IN"),
+    "colaba": ("Mumbai", "Maharashtra", "IN"),
+    "dadar": ("Mumbai", "Maharashtra", "IN"),
+    "borivali": ("Mumbai", "Maharashtra", "IN"),
+    "powai": ("Mumbai", "Maharashtra", "IN"),
+    "worli": ("Mumbai", "Maharashtra", "IN"),
+    "marine drive": ("Mumbai", "Maharashtra", "IN"),
+    "ghatkopar": ("Mumbai", "Maharashtra", "IN"),
+    "malad": ("Mumbai", "Maharashtra", "IN"),
+    "chembur": ("Mumbai", "Maharashtra", "IN"),
+    "kurla": ("Mumbai", "Maharashtra", "IN"),
+    "vile parle": ("Mumbai", "Maharashtra", "IN"),
+    "santacruz": ("Mumbai", "Maharashtra", "IN"),
+    "bkc": ("Mumbai", "Maharashtra", "IN"),
+    "bandra kurla complex": ("Mumbai", "Maharashtra", "IN"),
+    "kandivali": ("Mumbai", "Maharashtra", "IN"),
+    "goregaon": ("Mumbai", "Maharashtra", "IN"),
+    "mulund": ("Mumbai", "Maharashtra", "IN"),
+
+    # Delhi / NCR Localities
+    "connaught place": ("New Delhi", "Delhi", "IN"),
+    "cp": ("New Delhi", "Delhi", "IN"),
+    "chandni chowk": ("Delhi", "Delhi", "IN"),
+    "hauz khas": ("New Delhi", "Delhi", "IN"),
+    "saket": ("New Delhi", "Delhi", "IN"),
+    "rohini": ("Delhi", "Delhi", "IN"),
+    "dwarka": ("New Delhi", "Delhi", "IN"),
+    "karol bagh": ("New Delhi", "Delhi", "IN"),
+    "lajpat nagar": ("New Delhi", "Delhi", "IN"),
+    "vasant kunj": ("New Delhi", "Delhi", "IN"),
+    "chanakyapuri": ("New Delhi", "Delhi", "IN"),
+    "greater kailash": ("New Delhi", "Delhi", "IN"),
+    "gurugram": ("Gurugram", "Haryana", "IN"),
+    "gurgaon": ("Gurugram", "Haryana", "IN"),
+    "noida": ("Noida", "Uttar Pradesh", "IN"),
+    "indirapuram": ("Ghaziabad", "Uttar Pradesh", "IN"),
+
+    # Bengaluru Localities
+    "koramangala": ("Bengaluru", "Karnataka", "IN"),
+    "indiranagar": ("Bengaluru", "Karnataka", "IN"),
+    "whitefield": ("Bengaluru", "Karnataka", "IN"),
+    "jayanagar": ("Bengaluru", "Karnataka", "IN"),
+    "hsr layout": ("Bengaluru", "Karnataka", "IN"),
+    "electronic city": ("Bengaluru", "Karnataka", "IN"),
+    "marathahalli": ("Bengaluru", "Karnataka", "IN"),
+    "bellandur": ("Bengaluru", "Karnataka", "IN"),
+    "malleshwaram": ("Bengaluru", "Karnataka", "IN"),
+    "hebbal": ("Bengaluru", "Karnataka", "IN"),
+    "btm layout": ("Bengaluru", "Karnataka", "IN"),
+    "rajajinagar": ("Bengaluru", "Karnataka", "IN"),
+    "banashankari": ("Bengaluru", "Karnataka", "IN"),
+    "yelahanka": ("Bengaluru", "Karnataka", "IN"),
+
+    # Chennai Localities
+    "t nagar": ("Chennai", "Tamil Nadu", "IN"),
+    "t. nagar": ("Chennai", "Tamil Nadu", "IN"),
+    "adyar": ("Chennai", "Tamil Nadu", "IN"),
+    "velachery": ("Chennai", "Tamil Nadu", "IN"),
+    "anna nagar": ("Chennai", "Tamil Nadu", "IN"),
+    "mylapore": ("Chennai", "Tamil Nadu", "IN"),
+    "nungambakkam": ("Chennai", "Tamil Nadu", "IN"),
+    "thiruvanmiyur": ("Chennai", "Tamil Nadu", "IN"),
+    "guindy": ("Chennai", "Tamil Nadu", "IN"),
+    "alwarpet": ("Chennai", "Tamil Nadu", "IN"),
+    "besant nagar": ("Chennai", "Tamil Nadu", "IN"),
+    "tambaram": ("Chennai", "Tamil Nadu", "IN"),
+    "porur": ("Chennai", "Tamil Nadu", "IN"),
+
+    # Hyderabad Localities
+    "hitec city": ("Hyderabad", "Telangana", "IN"),
+    "gachibowli": ("Hyderabad", "Telangana", "IN"),
+    "jubilee hills": ("Hyderabad", "Telangana", "IN"),
+    "banjara hills": ("Hyderabad", "Telangana", "IN"),
+    "madhapur": ("Hyderabad", "Telangana", "IN"),
+    "kondapur": ("Hyderabad", "Telangana", "IN"),
+    "secunderabad": ("Secunderabad", "Telangana", "IN"),
+    "kukatpally": ("Hyderabad", "Telangana", "IN"),
+    "begumpet": ("Hyderabad", "Telangana", "IN"),
+    "charminar": ("Hyderabad", "Telangana", "IN"),
+    "dilsukhnagar": ("Hyderabad", "Telangana", "IN"),
+
+    # Pune Localities
+    "kothrud": ("Pune", "Maharashtra", "IN"),
+    "viman nagar": ("Pune", "Maharashtra", "IN"),
+    "hinjewadi": ("Pune", "Maharashtra", "IN"),
+    "baner": ("Pune", "Maharashtra", "IN"),
+    "wakad": ("Pune", "Maharashtra", "IN"),
+    "aundh": ("Pune", "Maharashtra", "IN"),
+    "hadapsar": ("Pune", "Maharashtra", "IN"),
+    "kalyani nagar": ("Pune", "Maharashtra", "IN"),
+    "shivajinagar": ("Pune", "Maharashtra", "IN"),
+    "pimpri": ("Pune", "Maharashtra", "IN"),
+    "chinchwad": ("Pune", "Maharashtra", "IN"),
+}
+
 
 class GeocodingService:
     """Service providing global location resolution to latitude/longitude coordinates."""
@@ -343,11 +476,129 @@ class GeocodingService:
     def __init__(self, client: Optional[httpx.AsyncClient] = None):
         self._client = client
 
-    async def geocode_location(self, location_name: str) -> GeocodedLocationSchema:
+    async def _query_nominatim(
+        self,
+        query: str,
+        country_code: Optional[str],
+        target_city_name: str,
+        cleaned_name: str,
+        cache_key: str,
+        state_hint: Optional[str] = None,
+    ) -> Optional[GeocodedLocationSchema]:
+        """Helper to query Nominatim and return normalized GeocodedLocationSchema with full administrative hierarchy."""
+        try:
+            nom_url = "https://nominatim.openstreetmap.org/search"
+            nom_params: Dict[str, Any] = {
+                "q": query,
+                "format": "json",
+                "limit": 5,
+                "addressdetails": 1,
+            }
+            if country_code:
+                nom_params["countrycodes"] = country_code.lower()
+
+            nom_headers = {"User-Agent": "StormOps-WeatherGPT/1.0"}
+
+            if self._client:
+                nom_resp = await self._client.get(nom_url, params=nom_params, headers=nom_headers, timeout=6.0)
+            else:
+                async with httpx.AsyncClient() as client:
+                    nom_resp = await client.get(nom_url, params=nom_params, headers=nom_headers, timeout=6.0)
+
+            if nom_resp.status_code == 200:
+                nom_data = nom_resp.json()
+                if nom_data:
+                    top_item = nom_data[0]
+                    addr = top_item.get("address", {})
+
+                    # Extract full administrative hierarchy
+                    locality = (
+                        addr.get("suburb")
+                        or addr.get("neighbourhood")
+                        or addr.get("quarter")
+                        or addr.get("city_district")
+                        or addr.get("residential")
+                        or addr.get("road")
+                        or addr.get("village")
+                        or addr.get("hamlet")
+                    )
+                    city = (
+                        addr.get("city")
+                        or addr.get("town")
+                        or addr.get("municipality")
+                        or addr.get("city_district")
+                    )
+                    subdivision = addr.get("county") or addr.get("subdistrict") or addr.get("tehsil") or addr.get("taluk")
+                    district = addr.get("state_district") or addr.get("county") or addr.get("district")
+                    state = addr.get("state") or state_hint
+                    country = addr.get("country", "")
+                    cc = (addr.get("country_code") or "").upper() or None
+
+                    # If target is a known prominent locality, use target_city_name as authoritative locality
+                    if target_city_name.lower() in INDIAN_PROMINENT_LOCALITIES:
+                        locality = target_city_name.title()
+
+                    # Construct honest, informative hierarchical display name
+                    primary_name = locality or top_item.get("name") or city or cleaned_name
+                    if locality and city and locality.lower() != city.lower():
+                        base_label = f"{locality}, {city}"
+                    else:
+                        base_label = primary_name
+
+                    if state and country:
+                        if state.lower() not in base_label.lower():
+                            disp_name = f"{base_label}, {state}, {country}"
+                        else:
+                            disp_name = f"{base_label}, {country}"
+                    elif country:
+                        disp_name = f"{base_label}, {country}"
+                    else:
+                        disp_name = base_label
+
+                    # If this is an administrative state/region, label honestly
+                    if top_item.get("class") == "boundary" and top_item.get("type") == "administrative":
+                        state_val = addr.get("state") or top_item.get("name")
+                        if state_val and state_val.lower() == cleaned_name.lower():
+                            disp_name = f"{state_val} (Region)"
+
+                    tz = "Asia/Kolkata" if (cc == "IN" or (country and country.lower() == "india")) else "UTC"
+
+                    result = GeocodedLocationSchema(
+                        name=disp_name,
+                        country=country,
+                        country_code=cc,
+                        admin1=state,
+                        state=state,
+                        district=district,
+                        subdivision=subdivision,
+                        city=city,
+                        locality=locality,
+                        latitude=float(top_item["lat"]),
+                        longitude=float(top_item["lon"]),
+                        timezone=tz,
+                    )
+                    is_explicit_foreign = bool(country_code and country_code.upper() != "IN")
+                    if not is_explicit_foreign and not india_locality_service.validate_administrative_hierarchy(result, target_city_name):
+                        logger.warning(
+                            "Nominatim result '%s' failed administrative validation for '%s'",
+                            result.name, target_city_name,
+                        )
+                        return None
+                    await _cache_set(cache_key, result)
+                    return result
+        except Exception as exc:
+            logger.warning(f"Nominatim lookup failed for '{query}': {exc}")
+        return None
+
+    async def geocode_location(
+        self,
+        location_name: str,
+        context_location: Optional[GeocodedLocationSchema] = None,
+    ) -> GeocodedLocationSchema:
         """Resolve location name globally to coordinates and timezone metadata.
 
         Results are stored in an in-memory bounded LRU cache (max 512 entries) keyed
-        on the normalized, alias-resolved city name. Cache hits return in <0.1 ms.
+        on the normalized, alias-resolved city name and geographic constraints. Cache hits return in <0.1 ms.
         Failed lookups (HTTPException) are never cached to avoid serving stale errors.
         Device-provided GPS coordinates (reverse_geocode) are always uncached.
         """
@@ -366,6 +617,7 @@ class GeocodingService:
         country_filter: Optional[str] = None
         state_filter: Optional[str] = None  # canonical state name for scoring
         metro_filter: Optional[str] = None
+        is_explicit_geography = False
 
         if "," in cleaned_name:
             parts = [p.strip() for p in cleaned_name.split(",") if p.strip()]
@@ -376,11 +628,13 @@ class GeocodingService:
                     # Case (a): explicit country name
                     country_filter = COUNTRY_NAME_TO_CODE[candidate_qualifier]
                     query_city = candidate_city
+                    is_explicit_geography = True
                 elif candidate_qualifier in INDIAN_STATE_NAMES:
                     # Case (b): Indian state / UT — force India country scope
                     country_filter = "IN"
                     state_filter = INDIAN_STATE_TO_CANONICAL.get(candidate_qualifier)
                     query_city = candidate_city
+                    is_explicit_geography = True
                     logger.debug(
                         "India state qualifier detected: '%s' → country_filter=IN, state='%s'",
                         candidate_qualifier, state_filter,
@@ -390,6 +644,7 @@ class GeocodingService:
                     country_filter = "US"
                     state_filter = US_STATE_NAMES[candidate_qualifier]
                     query_city = candidate_city
+                    is_explicit_geography = True
                     logger.debug(
                         "US state qualifier detected: '%s' → country_filter=US, state='%s'",
                         candidate_qualifier, state_filter,
@@ -399,6 +654,7 @@ class GeocodingService:
                     country_filter = "IN"
                     metro_filter = candidate_qualifier
                     query_city = candidate_city
+                    is_explicit_geography = True
                     logger.debug(
                         "India metro qualifier detected: '%s' → country_filter=IN, metro='%s'",
                         candidate_qualifier, metro_filter,
@@ -407,25 +663,53 @@ class GeocodingService:
                     # Case (e): 2-letter ISO country code
                     country_filter = candidate_qualifier.upper()
                     query_city = candidate_city
+                    is_explicit_geography = True
+                else:
+                    # Case (f): Generic explicit geographic qualifier (e.g. "Park Street, London")
+                    is_explicit_geography = True
 
         query_city_lower = query_city.lower()
 
-        # Step 2: Canonicalize known city aliases (e.g. Bangalore → Bengaluru, Calcutta → Kolkata)
+        # Step 2: Strong India/place intelligence match (fresh session support)
+        # When no explicit foreign qualifier was provided, match against prominent Indian localities
+        is_prominent_india = False
+        if not is_explicit_geography:
+            if query_city_lower in INDIAN_PROMINENT_LOCALITIES:
+                metro, state, cc = INDIAN_PROMINENT_LOCALITIES[query_city_lower]
+                country_filter = cc
+                metro_filter = metro.lower()
+                state_filter = state
+                is_prominent_india = True
+                logger.debug(
+                    "India prominent locality matched: '%s' → metro='%s', state='%s', country='IN'",
+                    query_city, metro, state,
+                )
+            elif (
+                context_location
+                and context_location.country_code
+                and query_city_lower not in INDIAN_METRO_QUALIFIERS
+                and query_city_lower not in INDIAN_REGION_CENTERS
+                and query_city_lower not in INDIAN_STATE_NAMES
+            ):
+                # Step 3: Use active session geographic context
+                country_filter = context_location.country_code
+                state_filter = context_location.state or context_location.admin1
+                if context_location.city:
+                    metro_filter = context_location.city.lower()
+                logger.debug(
+                    "Session context applied to '%s': country='%s', state='%s', metro='%s'",
+                    query_city, country_filter, state_filter, metro_filter,
+                )
+
+        # Step 4: Canonicalize known city aliases (e.g. Bangalore → Bengaluru, Calcutta → Kolkata)
         if query_city_lower in INDIAN_CITY_ALIASES:
             target_city_name = INDIAN_CITY_ALIASES[query_city_lower]
         else:
             target_city_name = query_city
 
-        # Cache key: build on the post-alias canonical target name + active geographic constraints.
-        # This prevents "Newtown, West Bengal" and "Newtown, Pennsylvania" from sharing a cache slot.
-        if state_filter:
-            cache_key_str = f"{target_city_name},{country_filter},{state_filter}"
-        elif metro_filter:
-            cache_key_str = f"{target_city_name},{country_filter},{metro_filter}"
-        elif country_filter:
-            cache_key_str = f"{target_city_name},{country_filter}"
-        else:
-            cache_key_str = target_city_name
+        # Cache key: build on canonical target name + active geographic constraints.
+        # This prevents cross-context collisions (e.g. "Park Street" in Kolkata vs "Park Street, London")
+        cache_key_str = f"{target_city_name}|{country_filter}|{state_filter}|{metro_filter}"
         cache_key = _normalize_cache_key(cache_key_str)
 
         # Cache lookup before any network I/O.
@@ -434,16 +718,15 @@ class GeocodingService:
             logger.debug("Geocoding cache hit for '%s' (key=%s)", cleaned_name, cache_key)
             return cached
 
-        # Step 3: Handle ambiguous state/region queries (e.g., "Kerala", "Goa", "Punjab")
-        # Preserve genuine regional geographic entity and explicitly label as region.
-        # Only activate when no country filter is active (so "Goa, India" is geocoded normally).
-        if query_city_lower in INDIAN_REGION_CENTERS and not country_filter:
+        # Step 5: Handle ambiguous state/region queries (e.g., "Kerala", "Goa", "Punjab")
+        if query_city_lower in INDIAN_REGION_CENTERS and not is_explicit_geography:
             lat, lon, region_name, country_name, cc = INDIAN_REGION_CENTERS[query_city_lower]
             result = GeocodedLocationSchema(
                 name=f"{region_name} (Region)",
                 country=country_name,
                 country_code=cc,
                 admin1=region_name,
+                state=region_name,
                 latitude=lat,
                 longitude=lon,
                 timezone="Asia/Kolkata",
@@ -451,7 +734,47 @@ class GeocodingService:
             await _cache_set(cache_key, result)
             return result
 
-        # Step 4: Primary global resolution via Open-Meteo Geocoding API
+        # Step 6: High-confidence India Locality Database match (Structured Dataset)
+        # Enables instant, authoritative fresh-session resolution for urban localities/neighbourhoods
+        # across 30+ major Indian cities with complete administrative hierarchy (locality, city, district,
+        # subdivision, state, country, tz, lat/lon).
+        if not is_explicit_geography or country_filter == "IN":
+            ctx_c = metro_filter or (
+                context_location.city if context_location and context_location.country_code == "IN" else None
+            )
+            ctx_s = state_filter or (
+                (context_location.state or context_location.admin1)
+                if context_location and context_location.country_code == "IN"
+                else None
+            )
+            india_match = india_locality_service.find_locality(
+                target_city_name,
+                context_city=ctx_c,
+                context_state=ctx_s,
+            )
+            if india_match is not None:
+                logger.debug(
+                    "India locality dataset hit: '%s' → %s (%s, %s)",
+                    target_city_name, india_match.name, india_match.city, india_match.state,
+                )
+                await _cache_set(cache_key, india_match)
+                return india_match
+
+        # Step 7: Targeted Nominatim lookup for prominent Indian localities
+        if is_prominent_india:
+            nom_query = f"{target_city_name}, {metro_filter or state_filter}, India"
+            nom_res = await self._query_nominatim(
+                query=nom_query,
+                country_code="in",
+                target_city_name=target_city_name,
+                cleaned_name=cleaned_name,
+                cache_key=cache_key,
+                state_hint=state_filter,
+            )
+            if nom_res is not None:
+                return nom_res
+
+        # Step 7: Primary global resolution via Open-Meteo Geocoding API
         params = {
             "name": target_city_name,
             "count": 10,
@@ -495,11 +818,6 @@ class GeocodingService:
             ]
 
         if results:
-            # Candidate pools — ordered by preference:
-            #   1. Exact name match + correct Indian state (highest specificity)
-            #   2. Exact name match, sorted by population
-            #   3. Any result with correct Indian state, sorted by population
-            #   4. Highest-population result as final fallback
             exact_matches = [
                 r for r in results
                 if r.get("name", "").strip().lower() == target_city_name.lower()
@@ -522,12 +840,10 @@ class GeocodingService:
                     )
 
                 if top_result is None and exact_matches:
-                    # Exact name but no state match — still prefer exact over partial
                     exact_matches.sort(key=lambda x: x.get("population") or 0, reverse=True)
                     top_result = exact_matches[0]
 
                 if top_result is None:
-                    # No exact name — look for state match among all country-filtered results
                     state_any = [
                         r for r in any_matches
                         if (r.get("admin1") or "").strip().lower() == state_filter.lower()
@@ -544,8 +860,6 @@ class GeocodingService:
                     any_matches.sort(key=lambda x: x.get("population") or 0, reverse=True)
                     top_result = any_matches[0]
 
-            # Build display name: when a state qualifier was given and the result has admin1,
-            # format as "City, State, Country" to be explicit about the resolved location.
             resolved_name = top_result.get("name", cleaned_name)
             resolved_admin1 = top_result.get("admin1")
             resolved_country = top_result.get("country", "")
@@ -553,6 +867,10 @@ class GeocodingService:
                 display_name = f"{resolved_name}, {resolved_admin1}, {resolved_country}".strip(", ")
             else:
                 display_name = resolved_name
+
+            tz = top_result.get("timezone", "UTC")
+            if (top_result.get("country_code") or "").upper() == "IN":
+                tz = "Asia/Kolkata"
 
             result = GeocodedLocationSchema(
                 name=display_name,
@@ -565,99 +883,38 @@ class GeocodingService:
                 city=top_result.get("name"),
                 latitude=float(top_result["latitude"]),
                 longitude=float(top_result["longitude"]),
-                timezone=top_result.get("timezone", "UTC"),
+                timezone=tz,
             )
-            await _cache_set(cache_key, result)
-            return result
-
-        # Step 5: Global fallback to OpenStreetMap Nominatim (handles complex, local, or country-qualified queries)
-        try:
-            nom_url = "https://nominatim.openstreetmap.org/search"
-            nom_params = {
-                "q": cleaned_name,
-                "format": "json",
-                "limit": 5,
-                "addressdetails": 1,
-            }
-            if country_filter:
-                nom_params["countrycodes"] = country_filter.lower()
-
-            nom_headers = {"User-Agent": "StormOps-WeatherGPT/1.0"}
-
-            if self._client:
-                nom_resp = await self._client.get(nom_url, params=nom_params, headers=nom_headers, timeout=6.0)
+            is_explicit_foreign = is_explicit_geography and bool(country_filter and country_filter != "IN")
+            if not is_explicit_foreign and not india_locality_service.validate_administrative_hierarchy(result, target_city_name):
+                logger.warning(
+                    "Open-Meteo result '%s' failed administrative validation for '%s'",
+                    result.name, target_city_name,
+                )
             else:
-                async with httpx.AsyncClient() as client:
-                    nom_resp = await client.get(nom_url, params=nom_params, headers=nom_headers, timeout=6.0)
+                await _cache_set(cache_key, result)
+                return result
 
-            if nom_resp.status_code == 200:
-                nom_data = nom_resp.json()
-                if nom_data:
-                    top_item = nom_data[0]
-                    addr = top_item.get("address", {})
-
-                    # Extract full administrative hierarchy
-                    locality = (
-                        addr.get("suburb")
-                        or addr.get("neighbourhood")
-                        or addr.get("quarter")
-                        or addr.get("city_district")
-                        or addr.get("residential")
-                        or addr.get("village")
-                        or addr.get("hamlet")
-                    )
-                    city = (
-                        addr.get("city")
-                        or addr.get("town")
-                        or addr.get("municipality")
-                    )
-                    subdivision = addr.get("county")
-                    district = addr.get("state_district") or addr.get("county")
-                    state = addr.get("state")
-                    country = addr.get("country", "")
-
-                    # Construct honest, informative hierarchical display name
-                    primary_name = top_item.get("name") or locality or city or cleaned_name
-                    if locality and city and locality.lower() != city.lower():
-                        base_label = f"{locality}, {city}"
-                    else:
-                        base_label = primary_name
-
-                    if state and country:
-                        if state.lower() not in base_label.lower():
-                            disp_name = f"{base_label}, {state}, {country}"
-                        else:
-                            disp_name = f"{base_label}, {country}"
-                    elif country:
-                        disp_name = f"{base_label}, {country}"
-                    else:
-                        disp_name = base_label
-
-                    # If this is an administrative state/region, label honestly
-                    if top_item.get("class") == "boundary" and top_item.get("type") == "administrative":
-                        state_val = addr.get("state") or top_item.get("name")
-                        if state_val and state_val.lower() == cleaned_name.lower():
-                            disp_name = f"{state_val} (Region)"
-
-                    result = GeocodedLocationSchema(
-                        name=disp_name,
-                        country=country,
-                        country_code=(addr.get("country_code") or "").upper() or None,
-                        admin1=state,
-                        state=state,
-                        district=district,
-                        subdivision=subdivision,
-                        city=city,
-                        locality=locality,
-                        latitude=float(top_item["lat"]),
-                        longitude=float(top_item["lon"]),
-                        timezone="UTC",
-                    )
-                    await _cache_set(cache_key, result)
-                    return result
-        except Exception as exc:
-            logger.warning(f"Nominatim global fallback lookup failed for '{cleaned_name}': {exc}")
-
+        # Step 8: Global fallback to OpenStreetMap Nominatim
+        nom_fallback_res = await self._query_nominatim(
+            query=cleaned_name,
+            country_code=country_filter,
+            target_city_name=target_city_name,
+            cleaned_name=cleaned_name,
+            cache_key=cache_key,
+            state_hint=state_filter,
+        )
+        if nom_fallback_res is None and (metro_filter or state_filter):
+            nom_fallback_res = await self._query_nominatim(
+                query=f"{target_city_name}, {metro_filter or state_filter}",
+                country_code=country_filter,
+                target_city_name=target_city_name,
+                cleaned_name=cleaned_name,
+                cache_key=cache_key,
+                state_hint=state_filter,
+            )
+        if nom_fallback_res is not None:
+            return nom_fallback_res
 
         logger.warning(f"Global location not found: {cleaned_name}")
         raise HTTPException(

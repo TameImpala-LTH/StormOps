@@ -391,6 +391,184 @@ class MultilingualService:
             return f"'{location_name}' साठी हवामान सेवा सध्या उपलब्ध नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा."
         return f"Weather service is temporarily unavailable for '{location_name}'. Please try again in a few moments."
 
+    def generate_key_insight(
+        self,
+        language: str,
+        query_info: Any,
+        location_name: str,
+        temp: float,
+        feels_like: float,
+        condition: str,
+        humidity: int,
+        wind_speed: float,
+        precip_prob: int,
+        precip: float,
+        decision: Optional[Any] = None,
+        period_label: str = "today",
+        rain_duration_hours: int = 0,
+    ) -> str:
+        """Generate a concise, authoritative 1-sentence Key Weather Insight answering 'What is the one thing to know?'."""
+        lang = self.normalize_language(language)
+        loc = location_name
+        temp_round = round(temp)
+        period = period_label.strip() if period_label else "today"
+
+        if decision and getattr(decision, "summary", None):
+            return str(decision.summary).strip()
+
+        if lang == "hi":
+            if precip_prob >= 70 or precip > 1.5:
+                return f"{loc} में {period} बारिश की उच्च संभावना ({precip_prob}%) और आर्द्र मौसम रहेगा।"
+            if temp >= 35:
+                return f"{loc} में {period} अत्यधिक गर्मी और तेज धूप का अनुमान है ({temp_round}°C)।"
+            if temp <= 10:
+                return f"{loc} में {period} ठंड और सर्द मौसम रहेगा ({temp_round}°C)।"
+            if humidity >= 65 and temp >= 27:
+                return f"{loc} में {period} उमस और गर्मी बनी रहेगी ({temp_round}°C)।"
+            return f"{loc} में {period} मुख्य रूप से {condition} मौसम और {temp_round}°C तापमान रहेगा।"
+
+        if lang == "bn":
+            if precip_prob >= 70 or precip > 1.5:
+                return f"{loc}-এ {period} বৃষ্টির প্রবল সম্ভাবনা ({precip_prob}%) এবং আর্দ্র আবহাওয়া থাকবে।"
+            if temp >= 35:
+                return f"{loc}-এ {period} তীব্র গরম ও রোদের পূর্বাভাস ({temp_round}°C)।"
+            if temp <= 10:
+                return f"{loc}-এ {period} শীত ও ঠান্ডার পূর্বাভাস ({temp_round}°C)।"
+            if humidity >= 65 and temp >= 27:
+                return f"{loc}-এ {period} ভ্যাপসা গরম ও আর্দ্রতা বজায় থাকবে ({temp_round}°C)।"
+            return f"{loc}-এ {period} মূলত {condition} আবহাওয়া এবং {temp_round}°C তাপমাত্রা থাকবে।"
+
+        # Default English
+        if precip_prob >= 70 or precip > 1.5:
+            if rain_duration_hours in (1, 2):
+                return f"Passing showers are likely in {loc} during {period} with a peak {precip_prob}% rain probability."
+            return f"Expect a warm and humid day in {loc} with a high likelihood of rain ({precip_prob}% probability)."
+        if "thunder" in condition.lower():
+            return f"Thunderstorms and gusty weather anticipated in {loc} during {period}."
+        if precip_prob >= 40 or precip > 0.4:
+            return f"Passing or brief showers are possible in {loc} during {period} with a {precip_prob}% chance of rain."
+        if temp >= 38:
+            return f"Intense heat anticipated in {loc} during {period}, peaking around {temp_round}°C."
+        if temp <= 10:
+            return f"Cold conditions expected in {loc} during {period} with temperatures dipping to {temp_round}°C."
+        if humidity >= 65 and temp >= 27:
+            return f"Expect a warm and humid day in {loc} during {period} around {temp_round}°C."
+        return f"Predominantly {condition.lower()} conditions expected in {loc} during {period} around {temp_round}°C."
+
+    def generate_detailed_interpretation(
+        self,
+        language: str,
+        query_info: Any,
+        location_name: str,
+        temp: float,
+        feels_like: float,
+        condition: str,
+        humidity: int,
+        wind_speed: float,
+        precip_prob: int,
+        precip: float,
+        decision: Optional[Any] = None,
+        rain_duration_hours: int = 0,
+        peak_hour: Optional[str] = None,
+        total_precip: float = 0.0,
+        period_label: str = "today",
+    ) -> str:
+        """Generate a rich, multi-sentence Detailed Interpretation synthesizing all structured metrics.
+        Explains thermal comfort (temperature vs feels-like and humidity index effect), precipitation
+        likelihood and accumulation, wind dynamics, and practical implications.
+        """
+        lang = self.normalize_language(language)
+        loc = location_name
+        temp_round = round(temp)
+        feels_round = round(feels_like)
+        period = period_label.strip() if period_label else "today"
+
+        # English
+        if lang == "en":
+            sentences: list[str] = []
+
+            # 1. Thermal comfort & feels-like comparison
+            if feels_round >= temp_round + 3:
+                sentences.append(
+                    f"Temperatures in {loc} will reach around {temp_round}°C during {period}, but elevated relative humidity ({humidity}%) will push the feels-like index higher to approximately {feels_round}°C."
+                )
+            elif feels_round <= temp_round - 3:
+                sentences.append(
+                    f"Temperatures in {loc} will hover near {temp_round}°C during {period}, though wind chill will make it feel noticeably cooler at approximately {feels_round}°C."
+                )
+            else:
+                sentences.append(
+                    f"Temperatures in {loc} will hover near {temp_round}°C (feels like {feels_round}°C) under {condition.lower()} skies."
+                )
+
+            # 2. Precipitation details & duration
+            effective_precip = total_precip if total_precip > 0 else precip
+            precip_text = f"an estimated {effective_precip:.1f} mm of rainfall" if effective_precip > 0 else "passing shower accumulation"
+            timing_text = f" around {peak_hour}" if peak_hour else ""
+
+            if precip_prob >= 70 or effective_precip >= 1.0:
+                if rain_duration_hours >= 3:
+                    sentences.append(
+                        f"Rain is expected to be sustained across several hours{timing_text} with a peak {precip_prob}% probability and {precip_text}."
+                    )
+                else:
+                    sentences.append(
+                        f"Showers are likely to be intermittent during the period{timing_text}, carrying a peak {precip_prob}% precipitation probability and {precip_text}."
+                    )
+            elif precip_prob >= 35 or effective_precip > 0.1:
+                sentences.append(
+                    f"Isolated or scattered showers remain possible ({precip_prob}% chance), though prolonged downpours are not anticipated."
+                )
+            else:
+                sentences.append(
+                    f"Precipitation chances remain minimal at {precip_prob}%, keeping the period largely dry."
+                )
+
+            # 3. Wind & Humidity dynamics
+            if wind_speed >= 25.0:
+                sentences.append(
+                    f"Stronger winds of {wind_speed:.1f} km/h will create brisk conditions and active air circulation."
+                )
+            elif wind_speed >= 12.0:
+                sentences.append(
+                    f"Moderate winds of {wind_speed:.1f} km/h will accompany the {humidity}% humidity levels."
+                )
+            else:
+                sentences.append(
+                    f"Gentle winds averaging {wind_speed:.1f} km/h offer limited convective cooling against the {humidity}% moisture levels."
+                )
+
+            # 4. Practical guidance
+            if decision and getattr(decision, "summary", None):
+                sentences.append(f"Recommendation: {decision.summary}")
+            elif precip_prob >= 60:
+                sentences.append("Carrying rain protection and allowing extra transit time for wet roadways is advisable.")
+            elif temp >= 35 or feels_round >= 40:
+                sentences.append("Staying well hydrated and minimizing heavy outdoor exertion during peak heat hours is recommended.")
+            elif temp <= 10:
+                sentences.append("Wearing warm thermal layers when stepping outside is recommended.")
+            else:
+                sentences.append("Overall conditions remain manageable for regular daytime routines.")
+
+            return " ".join(sentences)
+
+        # Fall back to localized summary for non-English languages
+        return self.generate_localized_summary(
+            language=lang,
+            query_info=query_info,
+            location_name=location_name,
+            temp=temp,
+            feels_like=feels_like,
+            condition=condition,
+            humidity=humidity,
+            wind_speed=wind_speed,
+            precip_prob=precip_prob,
+            precip=precip,
+            decision=decision,
+            rain_duration_hours=rain_duration_hours,
+            peak_hour=peak_hour,
+        )
+
     def generate_localized_summary(
         self,
         language: str,
