@@ -1,0 +1,36 @@
+[
+  {
+    "_comment": "I – Curated locality: Bandra, Mumbai",
+    "name": "Bandra",
+    "city": "Mumbai",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "latitude": 19.0596,
+    "longitude": 72.8295,
+    "aliases": [],
+    "confidence": 0.95
+  },
+  {
+    "_comment": "I – Curated locality: Andheri, Mumbai",
+    "name": "Andheri",
+    "city": "Mumbai",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "latitude": 19.1136,
+    "longitude": 72.8697,
+    "aliases": ["Andheri East", "Andheri West"],
+    "confidence": 0.95
+  },
+  {
+    "_comment": "I – Curated landmark: Chhatrapati Shivaji Maharaj Terminus",
+    "name": "Chhatrapati Shivaji Maharaj Terminus",
+    "city": "Mumbai",
+    "district": "Mumbai City",
+    "state": "Maharashtra",
+    "latitude": 18.9400,
+    "longitude": 72.8347,
+    "landmark": true,
+    "aliases": ["CSMT", "VT", "Victoria Terminus"],
+    "confidence": 0.95
+  }
+]
