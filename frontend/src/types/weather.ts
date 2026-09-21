@@ -69,7 +69,13 @@ export type LanguageCode = 'auto' | 'en' | 'hi' | 'bn' | 'ta' | 'te' | 'mr';
 export interface GeocodedLocationSchema {
   name: string;
   country: string;
+  country_code?: string | null;
   admin1?: string | null;
+  locality?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  subdivision?: string | null;
   latitude: number;
   longitude: number;
   timezone: string;

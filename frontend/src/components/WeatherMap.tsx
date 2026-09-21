@@ -296,9 +296,38 @@ export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-// CSS filter applied to the tile layer pane for dark/midnight themes
-const DARK_TILE_FILTER =
-  'brightness(0.55) invert(1) hue-rotate(180deg) saturate(0.65) contrast(0.88)';
+
+// CSS filters applied to the Leaflet tilePane per theme.
+// Advisory polygons/circles/markers live in a separate LayerGroup pane — these
+// filters ONLY affect the base raster tile layer, NOT advisory geometry.
+// Visual intent per theme:
+//   Atheris  — cool blue-grey ("cloudy technical map")
+//   Vandal   — warm wine/maroon ("stormy maroon map") — NOT neon red
+//   Night    — deep purple/indigo atmospheric cast
+//   Light    — standard light map (no filter)
+function getTileFilter(theme: string, darkVariant: string): string {
+  if (theme === 'light') return 'none';
+  if (theme === 'night') {
+    // Deep purple/indigo cast — invert base, rotate hue toward violet, desaturate
+    return 'brightness(0.38) invert(1) hue-rotate(210deg) saturate(0.50) contrast(0.85) sepia(0.12)';
+  }
+  // theme === 'dark'
+  if (darkVariant === 'vandal') {
+    // Warm wine/maroon feel — rotate hue slightly less than 180° to preserve warm tones
+    return 'brightness(0.42) invert(1) hue-rotate(145deg) saturate(0.60) contrast(0.90) sepia(0.18)';
+  }
+  // Atheris (default dark) — cool blue-grey
+  return 'brightness(0.48) invert(1) hue-rotate(180deg) saturate(0.55) contrast(0.88)';
+}
+
+function applyTileFilter(map: L.Map, theme: string, darkVariant: string) {
+  const pane = map.getPane('tilePane');
+  if (pane) {
+    (pane as HTMLElement).style.filter = getTileFilter(theme, darkVariant);
+  }
+}
+
+
 
 // Haversine great-circle distance (km) — pure local calculation, no API
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -328,13 +357,6 @@ function formatLocalTime(timezone: string): string {
     }).format(new Date());
   } catch {
     return '';
-  }
-}
-
-function applyTileFilter(map: L.Map, isDark: boolean) {
-  const pane = map.getPane('tilePane');
-  if (pane) {
-    (pane as HTMLElement).style.filter = isDark ? DARK_TILE_FILTER : 'none';
   }
 }
 
@@ -554,7 +576,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   const lat = location.latitude;
   const lng = location.longitude;
   const placeName = location.name;
-  const isDarkTheme = theme === 'dark' || theme === 'night';
 
   // Theme-specific accent colors matching design tokens (including Atheris vs Vandal)
   const accentColorA = accentColor;
@@ -735,7 +756,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       const tileLayer = L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
       tileLayerRef.current = tileLayer;
 
-      applyTileFilter(map, isDarkTheme);
+      applyTileFilter(map, theme, darkVariant);
 
       // Marker A
       const customIconA = L.divIcon({
@@ -1016,9 +1037,9 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   useEffect(() => {
     if (!tileLayerRef.current || !mapInstanceRef.current) return;
     tileLayerRef.current.setUrl(TILE_URL);
-    applyTileFilter(mapInstanceRef.current, isDarkTheme);
+    applyTileFilter(mapInstanceRef.current, theme, darkVariant);
     mapInstanceRef.current.invalidateSize();
-  }, [theme, isDarkTheme]);
+  }, [theme, darkVariant]);
 
   // ---------------------------------------------------------------------------
   // Fullscreen toggle — invalidate size after CSS transition completes

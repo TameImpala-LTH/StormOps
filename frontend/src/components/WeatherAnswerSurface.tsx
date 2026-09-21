@@ -17,7 +17,9 @@ import {
   AlertCircle,
   AlertTriangle,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { QueryResponse } from '../types/weather';
 import { OfficialAdvisory } from '../types/advisory';
 import { fetchOfficialAdvisories } from '../services/weather';
@@ -113,6 +115,97 @@ function getRecommendationStyle(rec: string): { icon: React.ReactNode; bgColor: 
   }
 }
 
+// Extract a concise, prominent key insight (first clean sentence) from AI summary
+function extractKeyInsight(summaryText: string): string {
+  if (!summaryText) return '';
+  const clean = summaryText.trim().replace(/^#+\s+/, '').replace(/^\*+\s+/, '');
+  // Match first complete sentence
+  const match = clean.match(/^([^.!?\n]+[.!?])/);
+  if (match && match[1] && match[1].trim().length >= 8) {
+    return match[1].trim();
+  }
+  const firstLine = clean.split('\n')[0].trim();
+  if (firstLine.length <= 180) return firstLine;
+  return firstLine.slice(0, 177) + '...';
+}
+
+// Weather condition accent styling (distinct from official advisory severity colors)
+function getWeatherConditionAccent(
+  weatherCode: number,
+  temp: number,
+  theme: string,
+  darkVariant: string,
+  baseAccent: string
+): {
+  accentColor: string;
+  supportingColor: string;
+  badgeBg: string;
+  badgeBorder: string;
+  glowStyle: string;
+} {
+  // 1. Thunderstorm (codes 95-99) — electric violet / purple
+  if (weatherCode >= 95 && weatherCode <= 99) {
+    return {
+      accentColor: '#a855f7',
+      supportingColor: '#c084fc',
+      badgeBg: 'rgba(168, 85, 247, 0.12)',
+      badgeBorder: 'rgba(168, 85, 247, 0.28)',
+      glowStyle: '0 4px 20px -2px rgba(168, 85, 247, 0.18)',
+    };
+  }
+
+  // 2. Rain / Showers (codes 51-82, 85-86) — cyan / cool blue
+  if ((weatherCode >= 51 && weatherCode <= 82) || (weatherCode >= 85 && weatherCode <= 86)) {
+    const isVandal = theme === 'dark' && darkVariant === 'vandal';
+    return {
+      accentColor: isVandal ? '#38bdf8' : '#38bdf8',
+      supportingColor: isVandal ? '#fb923c' : '#7dd3fc',
+      badgeBg: 'rgba(56, 189, 248, 0.12)',
+      badgeBorder: 'rgba(56, 189, 248, 0.28)',
+      glowStyle: isVandal
+        ? '0 4px 20px -2px rgba(255, 42, 85, 0.14)'
+        : '0 4px 20px -2px rgba(56, 189, 248, 0.14)',
+    };
+  }
+
+  // 3. Extreme Heat (temp >= 35°C) — amber / warm orange
+  if (temp >= 35) {
+    return {
+      accentColor: '#f97316',
+      supportingColor: '#fbbf24',
+      badgeBg: 'rgba(249, 115, 22, 0.12)',
+      badgeBorder: 'rgba(249, 115, 22, 0.28)',
+      glowStyle: '0 4px 20px -2px rgba(249, 115, 22, 0.16)',
+    };
+  }
+
+  // 4. Cold / Freezing (temp <= 5°C) — cool icy blue
+  if (temp <= 5) {
+    return {
+      accentColor: '#60a5fa',
+      supportingColor: '#93c5fd',
+      badgeBg: 'rgba(96, 165, 250, 0.12)',
+      badgeBorder: 'rgba(96, 165, 250, 0.28)',
+      glowStyle: '0 4px 20px -2px rgba(96, 165, 250, 0.14)',
+    };
+  }
+
+  // 5. Default / Clear / Mild — theme-driven accent
+  const isVandal = theme === 'dark' && darkVariant === 'vandal';
+  const isNight = theme === 'night';
+  return {
+    accentColor: baseAccent,
+    supportingColor: isVandal ? '#fb923c' : isNight ? '#a78bfa' : baseAccent,
+    badgeBg: 'var(--accent-muted)',
+    badgeBorder: 'var(--accent-border)',
+    glowStyle: isVandal
+      ? '0 4px 20px -2px rgba(255, 42, 85, 0.14)'
+      : isNight
+      ? '0 4px 20px -2px rgba(168, 85, 247, 0.14)'
+      : '0 4px 18px -2px rgba(56, 189, 248, 0.12)',
+  };
+}
+
 
 export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
   response,
@@ -176,6 +269,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
 
   const [isEnvPanelOpen, setIsEnvPanelOpen] = useState(false);
   const { isAuthenticated, savedLocations, saveLocation, removeSavedLocation } = useAuth();
+  const { theme, darkVariant, accentColor } = useTheme();
 
   const {
     location,
@@ -280,6 +374,15 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
     : 'Weather Forecast';
 
   const periodTitle = formatPeriodLabel(weather.period_label || 'current');
+
+  const keyInsight = extractKeyInsight(summary);
+  const conditionStyle = getWeatherConditionAccent(
+    weather.weather_code,
+    weather.temperature,
+    theme,
+    darkVariant,
+    accentColor
+  );
 
   // Render Severe Weather Alerts / Risk Advisories
   const renderAlertBanners = () => {
@@ -577,24 +680,154 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
       {/* 2. WeatherGPT Answer (Placed IMMEDIATELY after Location & Period Header) */}
       <motion.div
         variants={itemVariants}
-        className="p-4.5 rounded-2xl space-y-2 border shadow-sm"
+        className="rounded-2xl border transition-all"
         style={{
           backgroundColor: 'var(--surface-elevated)',
           borderColor: 'var(--border)',
+          borderTop: `2px solid ${conditionStyle.accentColor}`,
+          boxShadow: conditionStyle.glowStyle,
         }}
       >
-        <div
-          className="flex items-center space-x-2 text-xs font-mono uppercase tracking-wider font-semibold"
-          style={{ color: 'var(--accent)' }}
-        >
-          <Info className="w-4 h-4" />
-          <span>WeatherGPT Interpretation</span>
-        </div>
-        <div
-          className="text-base font-normal leading-relaxed"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          <FormattedMarkdown content={summary} />
+        <div className="p-5 sm:p-6 space-y-4">
+          {/* 1. WEATHERGPT INTERPRETATION header */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div
+              className="flex items-center space-x-2 text-xs font-mono uppercase tracking-wider font-semibold"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Sparkles className="w-4 h-4 flex-shrink-0" />
+              <span>WeatherGPT Interpretation</span>
+            </div>
+            <div
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono border"
+              style={{
+                backgroundColor: conditionStyle.badgeBg,
+                borderColor: conditionStyle.badgeBorder,
+                color: conditionStyle.accentColor,
+              }}
+            >
+              <span className="capitalize font-medium">{weather.condition}</span>
+            </div>
+          </div>
+
+          {/* 2. KEY INSIGHT — prominent, concise first-sentence insight */}
+          {keyInsight && (
+            <div className="pt-0.5">
+              <h3
+                className="text-lg sm:text-xl font-normal tracking-tight leading-snug"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {keyInsight}
+              </h3>
+            </div>
+          )}
+
+          {/* 3. Structured metric blocks (visually dominating) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+            {/* Temperature & Feels Like */}
+            <div
+              className="p-3 rounded-xl border flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border-muted)',
+              }}
+            >
+              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                <span>Temperature</span>
+                <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  {Math.round(weather.temperature)}°C
+                </div>
+                <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  Feels like {Math.round(weather.feels_like)}°C
+                </div>
+              </div>
+            </div>
+
+            {/* Precipitation */}
+            <div
+              className="p-3 rounded-xl border flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border-muted)',
+              }}
+            >
+              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                <span>Precipitation</span>
+                <CloudRain className="w-3.5 h-3.5 text-sky-400" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  {weather.precipitation_probability}%
+                </div>
+                <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }} title={weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain')}>
+                  {weather.precipitation > 0 ? `${weather.precipitation} mm` : (weather.peak_hour ? `Peak: ${weather.peak_hour}` : 'No rain expected')}
+                </div>
+              </div>
+            </div>
+
+            {/* Humidity */}
+            <div
+              className="p-3 rounded-xl border flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border-muted)',
+              }}
+            >
+              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                <span>Humidity</span>
+                <Droplets className="w-3.5 h-3.5 text-indigo-400" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  {weather.humidity}%
+                </div>
+                <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  {weather.humidity >= 70 ? 'Humid' : weather.humidity >= 40 ? 'Comfortable' : 'Dry'}
+                </div>
+              </div>
+            </div>
+
+            {/* Wind Speed */}
+            <div
+              className="p-3 rounded-xl border flex flex-col justify-between"
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border-muted)',
+              }}
+            >
+              <div className="flex items-center justify-between text-[11px] font-mono uppercase" style={{ color: 'var(--text-secondary)' }}>
+                <span>Wind</span>
+                <Wind className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  {weather.wind_speed} <span className="text-xs font-normal">km/h</span>
+                </div>
+                <div className="text-[11px] font-mono mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                  {weather.wind_speed >= 30 ? 'Strong wind' : weather.wind_speed >= 15 ? 'Moderate breeze' : 'Light breeze'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Full AI-generated summary underneath as secondary narrative */}
+          <div
+            className="pt-3 border-t space-y-1.5"
+            style={{ borderColor: 'var(--border-muted)' }}
+          >
+            <div className="text-[11px] font-mono uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Detailed Interpretation
+            </div>
+            <div
+              className="text-sm font-normal leading-relaxed"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <FormattedMarkdown content={summary} />
+            </div>
+          </div>
         </div>
       </motion.div>
 
