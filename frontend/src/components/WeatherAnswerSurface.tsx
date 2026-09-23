@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { QueryResponse, HourlyForecast } from '../types/weather';
-import { OfficialAdvisory } from '../types/advisory';
+import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
 import { fetchOfficialAdvisories } from '../services/weather';
 import { PRESET_LOCATIONS } from '../utils/locations';
 import { OfficialAdvisoryBanner } from './advisory/OfficialAdvisoryBanner';
@@ -592,6 +592,21 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
     },
   };
 
+  const promotedSevereAdvisories = useMemo(() => {
+    return advisories.filter((a) => {
+      const isAqi = a.hazard_type === 'AIR_QUALITY' || a.authority.toUpperCase() === 'CPCB';
+      if (isAqi) return false;
+      const sev = (a.severity || '').toLowerCase();
+      const isActive = getAdvisoryTemporalState(a) === 'ACTIVE';
+      return isActive && (sev === 'red' || sev === 'orange');
+    });
+  }, [advisories]);
+
+  const promotedAdvisoryIds = useMemo(
+    () => promotedSevereAdvisories.map((a) => a.id),
+    [promotedSevereAdvisories]
+  );
+
   return (
     <motion.article
       aria-label="Weather intelligence briefing surface"
@@ -691,7 +706,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
         </motion.div>
       ) : null}
 
-      {/* 5. 24-HOUR FORECAST (EVIDENCE: Preserved intact) */}
+      {/* 5. 24-HOUR FORECAST (WHEN / EVIDENCE: Preserved intact) */}
       {!comparison && (
         <motion.div variants={itemVariants}>
           <React.Suspense
@@ -715,18 +730,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
         </motion.div>
       )}
 
-      {/* 6. OFFICIAL ADVISORIES (DETAIL: Preserved intact when present) */}
-      {advisories && advisories.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <OfficialAdvisorySection
-            advisories={advisories}
-            locationName={location?.name ?? undefined}
-            showEmptyState={false}
-          />
-        </motion.div>
-      )}
-
-      {/* 7. INTERACTIVE WEATHER MAP (DETAIL: Spatial context preserved intact) */}
+      {/* 6. INTERACTIVE LOCATION MAP (WHERE: Spatial orientation & advisory geometry) */}
       {location && (
         <motion.div variants={itemVariants}>
           <React.Suspense
@@ -759,6 +763,18 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
               }}
             />
           </React.Suspense>
+        </motion.div>
+      )}
+
+      {/* 7. OFFICIAL INFORMATION (Authoritative bulletins & environmental measurements) */}
+      {advisories && advisories.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <OfficialAdvisorySection
+            advisories={advisories}
+            locationName={location?.name ?? undefined}
+            showEmptyState={false}
+            promotedAdvisoryIds={promotedAdvisoryIds}
+          />
         </motion.div>
       )}
     </motion.article>

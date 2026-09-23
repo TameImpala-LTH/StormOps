@@ -134,7 +134,7 @@ export const EnvironmentalEventPanel: React.FC<EnvironmentalEventPanelProps> = (
             </div>
             <div>
               <h3 className="text-sm font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                Environmental Intelligence
+                Official & Environmental Information
               </h3>
               <span className="text-[11px] font-mono text-zinc-400 block">
                 Official advisories, air quality, and regional civic periods

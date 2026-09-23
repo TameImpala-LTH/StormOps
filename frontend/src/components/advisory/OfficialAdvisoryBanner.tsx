@@ -37,8 +37,10 @@ function formatExpiryTime(isoDate: string): string {
 export const OfficialAdvisoryBanner: React.FC<OfficialAdvisoryBannerProps> = ({ advisories }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Filter for currently active Orange and Red advisories (excluding upcoming and expired)
+  // Filter for currently active Orange and Red weather advisories (excluding AQI, upcoming, and expired)
   const severeAdvisories = advisories.filter((a) => {
+    const isAqi = a.hazard_type === 'AIR_QUALITY' || a.authority.toUpperCase() === 'CPCB';
+    if (isAqi) return false;
     const sev = (a.severity || '').toLowerCase();
     const isActive = getAdvisoryTemporalState(a) === 'ACTIVE';
     return isActive && (sev === 'red' || sev === 'orange');

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { AdvisorySeverityBadge } from './AdvisorySeverityBadge';
 import { OfficialAdvisoryBanner } from './OfficialAdvisoryBanner';
 import { OfficialAdvisoryCard } from './OfficialAdvisoryCard';
@@ -470,6 +470,119 @@ describe('Advisory UI Component Suite', () => {
       };
       rerender(<OfficialAdvisoryCard advisory={expiredCardAdv} />);
       expect(screen.getByText('EXPIRED')).toBeDefined();
+    });
+  });
+
+  // 9. Phase UI-08: Official & Environmental Intelligence Refinements
+  describe('Phase UI-08: Official & Environmental Intelligence Invariants', () => {
+    it('Rule 2 & 3: renders quiet null state when no active/upcoming advisories exist', () => {
+      const expiredAdv: OfficialAdvisory = {
+        ...mockRedAdvisory,
+        effective_at: new Date(Date.now() - 7200000).toISOString(),
+        expires_at: new Date(Date.now() - 3600000).toISOString(),
+      };
+      const { container } = render(<OfficialAdvisorySection advisories={[expiredAdv]} showEmptyState={false} />);
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('Rule 7 & 8: renders single active advisory as a concise authoritative bulletin card', () => {
+      render(<OfficialAdvisorySection advisories={[mockRedAdvisory]} />);
+      expect(screen.getByText('OFFICIAL INFORMATION')).toBeDefined();
+      expect(screen.getByText('1 ACTIVE')).toBeDefined();
+      expect(screen.getByText('Extremely Heavy Rainfall Expected in Kolkata')).toBeDefined();
+      expect(screen.getByText('Official Public Guidance')).toBeDefined();
+      expect(screen.getByText('Avoid stepping outdoors unless strictly emergency. Secure loose items.')).toBeDefined();
+    });
+
+    it('Rule 7 & 9: renders multiple advisories in a compact scannable list by default with disclosure toggle', () => {
+      render(<OfficialAdvisorySection advisories={[mockRedAdvisory, mockOrangeAdvisory]} />);
+      expect(screen.getByText('2 ACTIVE')).toBeDefined();
+      expect(screen.getByText('Extremely Heavy Rainfall Expected in Kolkata')).toBeDefined();
+      expect(screen.getByText('Cyclonic Storm Approaching Coastal Odisha')).toBeDefined();
+
+      const toggleButton = screen.getByRole('button', { name: /View all official advisories \(2\)/i });
+      expect(toggleButton).toBeDefined();
+      expect(toggleButton.getAttribute('aria-expanded')).toBe('false');
+
+      // Click disclosure toggle to expand
+      fireEvent.click(toggleButton);
+      expect(toggleButton.getAttribute('aria-expanded')).toBe('true');
+      expect(screen.getByRole('button', { name: /Collapse official advisories/i })).toBeDefined();
+    });
+
+    it('Rule 6: deduplicates promoted severe advisory with subtle reference in lower section', () => {
+      render(
+        <OfficialAdvisorySection
+          advisories={[mockRedAdvisory, mockUpcomingAdvisory]}
+          promotedAdvisoryIds={['adv-001']}
+        />
+      );
+      expect(screen.getByText('Surfaced in alert banner ↑')).toBeDefined();
+    });
+
+    it('Rule 10 & 20: displays authoritative issuing source and safe external links', () => {
+      render(<OfficialAdvisoryCard advisory={mockRedAdvisory} />);
+      expect(screen.getByText('OFFICIAL · IMD')).toBeDefined();
+      expect(screen.getByText('Source: India Meteorological Department (IMD)')).toBeDefined();
+
+      const link = screen.getByRole('link', { name: /Open official source bulletin from IMD in a new tab/i });
+      expect(link.getAttribute('href')).toBe('https://mausam.imd.gov.in');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+
+    it('Rule 11: supports read more disclosure for long descriptions in OfficialAdvisoryCard', () => {
+      const longDescAdv: OfficialAdvisory = {
+        ...mockRedAdvisory,
+        description: 'This is a very long official description that exceeds one hundred and eighty characters to ensure the read more toggle appears properly and allows users to expand full authoritative text comfortably.',
+      };
+      render(<OfficialAdvisoryCard advisory={longDescAdv} />);
+      const readMoreBtn = screen.getByRole('button', { name: /Read more/i });
+      expect(readMoreBtn).toBeDefined();
+      expect(readMoreBtn.getAttribute('aria-expanded')).toBe('false');
+
+      fireEvent.click(readMoreBtn);
+      expect(readMoreBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(screen.getByRole('button', { name: /Show less/i })).toBeDefined();
+    });
+
+    it('Rule 12 & 13: guarantees immutable severity colors across themes (distinct from Vandal red)', () => {
+      const { container } = render(<AdvisorySeverityBadge severity="red" officialLevel="Red Warning" />);
+      const badge = container.querySelector('span[role="status"]');
+      expect(badge).toBeDefined();
+      expect(badge?.getAttribute('style')).toContain('rgb(244, 63, 94)'); // #f43f5e, not Vandal #ff2a55
+    });
+
+    it('Rule 16: renders air quality as environmental measurement and excludes it when absent', () => {
+      const { queryByText, rerender } = render(<OfficialAdvisorySection advisories={[mockRedAdvisory]} />);
+      expect(queryByText('AIR QUALITY BULLETIN')).toBeNull();
+
+      rerender(<OfficialAdvisorySection advisories={[mockRedAdvisory, mockAqiAdvisory]} />);
+      expect(screen.getByText('AIR QUALITY BULLETIN')).toBeDefined();
+      expect(screen.getByText('412')).toBeDefined();
+    });
+
+    it('Rule 18: renders semantic environmental indicator pill and suppresses when empty', () => {
+      const { queryByRole, rerender } = render(
+        <EnvironmentalEventIndicator
+          advisories={[]}
+          events={[]}
+          isOpen={false}
+          onToggle={() => {}}
+        />
+      );
+      expect(queryByRole('button')).toBeNull();
+
+      rerender(
+        <EnvironmentalEventIndicator
+          advisories={[mockRedAdvisory]}
+          events={[]}
+          isOpen={false}
+          onToggle={() => {}}
+        />
+      );
+      expect(screen.getByText('OFFICIAL')).toBeDefined();
+      expect(screen.getByText('1')).toBeDefined();
     });
   });
 });

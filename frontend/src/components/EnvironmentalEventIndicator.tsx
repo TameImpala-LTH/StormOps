@@ -1,8 +1,7 @@
 import React from 'react';
-import { Bell, BellRing, ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Calendar } from 'lucide-react';
 import { EnvironmentalEvent } from '../types/weather';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
-import { useTheme } from '../context/ThemeContext';
 
 interface EnvironmentalEventIndicatorProps {
   events?: EnvironmentalEvent[];
@@ -17,9 +16,6 @@ export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorPr
   isOpen,
   onToggle,
 }) => {
-  const { darkVariant } = useTheme();
-  const isVandal = darkVariant === 'vandal';
-
   const eventCount = events.length;
   // Exclude expired advisories from indicator count
   const unexpiredAdvisories = advisories.filter((a) => getAdvisoryTemporalState(a) !== 'EXPIRED');
@@ -35,23 +31,6 @@ export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorPr
   });
 
   const hasActiveAdvisory = unexpiredAdvisories.some((a) => getAdvisoryTemporalState(a) === 'ACTIVE');
-  const hasActiveEvent = events.some((e) => e.status === 'active');
-  const hasAnyActive = hasActiveAdvisory || hasActiveEvent;
-
-  // Determine icon & styling
-  let IconComponent = BellRing;
-  let pulseClass = !hasAnyActive && !isOpen ? 'animate-pulse' : '';
-  // Severe advisory uses semantic red (#f43f5e) regardless of theme — invariant preserved.
-  // Non-severe badge: Vandal = neon red (#ff2a55), Atheris/others = electric blue (#38bdf8).
-  let badgeColor = hasSevereAdvisory ? '#f43f5e' : isVandal ? '#ff2a55' : '#38bdf8';
-  let badgeTextColor = '#ffffff';
-
-  if (hasSevereAdvisory) {
-    IconComponent = ShieldAlert;
-    pulseClass = 'animate-pulse';
-  } else if (hasAnyActive) {
-    IconComponent = Bell;
-  }
 
   const tooltipLabel = [
     advisoryCount > 0 ? `${advisoryCount} Official ${advisoryCount === 1 ? 'Advisory' : 'Advisories'}` : '',
@@ -60,50 +39,82 @@ export const EnvironmentalEventIndicator: React.FC<EnvironmentalEventIndicatorPr
     .filter(Boolean)
     .join(' · ');
 
+  // Severe warning styling: official red (#f43f5e) immutable across themes
+  if (hasSevereAdvisory) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        title={tooltipLabel}
+        aria-label={`Official advisory alert: ${tooltipLabel}`}
+        aria-expanded={isOpen}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold transition-all cursor-pointer border"
+        style={{
+          backgroundColor: isOpen ? 'rgba(244,63,94,0.20)' : 'rgba(244,63,94,0.12)',
+          borderColor: 'rgba(244,63,94,0.38)',
+          color: '#f43f5e',
+        }}
+      >
+        <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 animate-pulse text-rose-500" />
+        <span className="tracking-wider">OFFICIAL</span>
+        <span
+          className="px-1.5 py-0.2 rounded-full text-[10px] font-bold"
+          style={{ backgroundColor: 'rgba(244,63,94,0.22)' }}
+        >
+          {totalCount}
+        </span>
+      </button>
+    );
+  }
+
+  // Active (non-severe) or Upcoming advisory styling: clean, restrained semantic pill
+  if (hasActiveAdvisory || advisoryCount > 0) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        title={tooltipLabel}
+        aria-label={`Official information available: ${tooltipLabel}`}
+        aria-expanded={isOpen}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border"
+        style={{
+          backgroundColor: isOpen ? 'var(--surface-elevated)' : 'var(--surface-secondary)',
+          borderColor: isOpen ? 'var(--accent-primary)' : 'var(--border-subtle)',
+          color: isOpen ? 'var(--accent-primary)' : 'var(--text-secondary)',
+        }}
+      >
+        <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
+        <span className="tracking-wider">OFFICIAL</span>
+        <span
+          className="px-1.5 py-0.2 rounded-full text-[10px] font-bold"
+          style={{ backgroundColor: 'var(--surface-elevated)' }}
+        >
+          {totalCount}
+        </span>
+      </button>
+    );
+  }
+
+  // Pure civic/contextual events: quiet contextual badge
   return (
     <button
       type="button"
       onClick={onToggle}
       title={tooltipLabel}
-      aria-label={tooltipLabel}
-      className="relative p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center border"
+      aria-label={`Contextual civic events: ${tooltipLabel}`}
+      aria-expanded={isOpen}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all cursor-pointer border"
       style={{
-        backgroundColor: isOpen
-          ? 'var(--surface-elevated)'
-          : hasSevereAdvisory
-          ? 'rgba(244,63,94,0.10)'
-          : 'var(--surface-input)',
-        borderColor: isOpen
-          ? 'var(--accent)'
-          : hasSevereAdvisory
-          ? 'rgba(244,63,94,0.40)'
-          : 'var(--border-muted)',
-        color: isOpen
-          ? 'var(--accent)'
-          : hasSevereAdvisory
-          ? '#f43f5e'
-          : 'var(--text-secondary)',
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-elevated)';
-        (e.currentTarget as HTMLButtonElement).style.color = hasSevereAdvisory ? '#f43f5e' : 'var(--accent)';
-      }}
-      onMouseLeave={(e) => {
-        if (!isOpen) {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = hasSevereAdvisory
-            ? 'rgba(244,63,94,0.10)'
-            : 'var(--surface-input)';
-          (e.currentTarget as HTMLButtonElement).style.color = hasSevereAdvisory ? '#f43f5e' : 'var(--text-secondary)';
-        }
+        backgroundColor: isOpen ? 'var(--surface-elevated)' : 'var(--surface-secondary)',
+        borderColor: isOpen ? 'var(--accent-primary)' : 'var(--border-subtle)',
+        color: 'var(--text-secondary)',
       }}
     >
-      <IconComponent className={`w-4 h-4 ${pulseClass}`} />
+      <Calendar className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
+      <span className="tracking-wider">CIVIC</span>
       <span
-        className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-mono font-bold flex items-center justify-center shadow-xs"
-        style={{
-          backgroundColor: badgeColor,
-          color: badgeTextColor,
-        }}
+        className="px-1.5 py-0.2 rounded-full text-[10px] font-bold"
+        style={{ backgroundColor: 'var(--surface-elevated)' }}
       >
         {totalCount}
       </span>

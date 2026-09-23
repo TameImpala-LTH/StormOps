@@ -16,11 +16,11 @@ function getAqiCategoryDetails(officialLevel?: string | null): {
   const level = (officialLevel || '').toUpperCase();
   let category = 'Moderate';
   let color = '#eab308';
-  let bg = 'rgba(234,179,8,0.12)';
-  let border = 'rgba(234,179,8,0.30)';
+  let bg = 'rgba(234,179,8,0.10)';
+  let border = 'rgba(234,179,8,0.25)';
   let aqiValue: string | undefined = undefined;
 
-  // Try extracting number from "AQI 320 (Very Poor)"
+  // Try extracting number from "AQI 320 (Very Poor)" or "AQI 412"
   const match = level.match(/AQI\s*(\d+)/i);
   if (match) {
     aqiValue = match[1];
@@ -29,33 +29,33 @@ function getAqiCategoryDetails(officialLevel?: string | null): {
   if (level.includes('SEVERE')) {
     category = 'Severe';
     color = '#991b1b';
-    bg = 'rgba(153,27,27,0.15)';
-    border = 'rgba(153,27,27,0.40)';
+    bg = 'rgba(153,27,27,0.12)';
+    border = 'rgba(153,27,27,0.30)';
   } else if (level.includes('VERY POOR')) {
     category = 'Very Poor';
     color = '#f43f5e';
-    bg = 'rgba(244,63,94,0.15)';
-    border = 'rgba(244,63,94,0.35)';
+    bg = 'rgba(244,63,94,0.12)';
+    border = 'rgba(244,63,94,0.30)';
   } else if (level.includes('POOR')) {
     category = 'Poor';
     color = '#f97316';
-    bg = 'rgba(249,115,22,0.12)';
-    border = 'rgba(249,115,22,0.35)';
+    bg = 'rgba(249,115,22,0.10)';
+    border = 'rgba(249,115,22,0.25)';
   } else if (level.includes('MODERATE')) {
     category = 'Moderate';
     color = '#eab308';
-    bg = 'rgba(234,179,8,0.12)';
-    border = 'rgba(234,179,8,0.30)';
+    bg = 'rgba(234,179,8,0.10)';
+    border = 'rgba(234,179,8,0.25)';
   } else if (level.includes('SATISFACTORY')) {
     category = 'Satisfactory';
     color = '#10b981';
-    bg = 'rgba(16,185,129,0.12)';
-    border = 'rgba(16,185,129,0.30)';
+    bg = 'rgba(16,185,129,0.10)';
+    border = 'rgba(16,185,129,0.25)';
   } else if (level.includes('GOOD')) {
     category = 'Good';
     color = '#059669';
-    bg = 'rgba(5,150,105,0.12)';
-    border = 'rgba(5,150,105,0.30)';
+    bg = 'rgba(5,150,105,0.10)';
+    border = 'rgba(5,150,105,0.25)';
   }
 
   return { category, color, bg, border, aqiValue };
@@ -66,13 +66,14 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
 
   return (
     <article
-      className="p-4 sm:p-5 rounded-2xl border space-y-3.5 transition-all"
+      aria-label={`Air quality bulletin: ${category} AQI`}
+      className="p-4 sm:p-5 rounded-2xl border space-y-3 transition-colors"
       style={{
-        backgroundColor: 'var(--surface-elevated)',
+        backgroundColor: 'var(--surface-secondary)',
         borderColor: border,
       }}
     >
-      {/* Header: AQI Indicator */}
+      {/* 1. Header: Environmental Measurement Identity */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center space-x-2">
           <div
@@ -86,19 +87,19 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
               className="text-[10px] font-mono font-bold uppercase tracking-wider block"
               style={{ color }}
             >
-              National Air Quality Index (NAQI)
+              Air Quality Bulletin · NAQI
             </span>
             <span
               className="text-xs font-mono"
-              style={{ color: 'var(--text-secondary)' }}
+              style={{ color: 'var(--text-tertiary)' }}
             >
-              Continuous Ambient Air Quality Monitoring
+              Continuous Ambient Air Quality Monitoring (CPCB)
             </span>
           </div>
         </div>
 
         <span
-          className="px-2.5 py-1 rounded-full text-xs font-mono font-bold border tracking-wider"
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border tracking-wider uppercase"
           style={{
             backgroundColor: bg,
             borderColor: border,
@@ -109,10 +110,10 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
         </span>
       </div>
 
-      {/* Main AQI Value Block */}
-      <div className="flex items-baseline space-x-3">
+      {/* 2. Main AQI Value Block */}
+      <div className="flex items-baseline space-x-3 pt-1">
         {aqiValue ? (
-          <span className="text-3xl sm:text-4xl font-light font-mono" style={{ color }}>
+          <span className="text-3xl sm:text-4xl font-light font-mono tabular-nums" style={{ color }}>
             {aqiValue}
           </span>
         ) : (
@@ -120,19 +121,19 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
             {category}
           </span>
         )}
-        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <div className="text-xs space-y-0.5" style={{ color: 'var(--text-secondary)' }}>
           <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{advisory.headline}</p>
-          <p>{advisory.description}</p>
+          {advisory.description && <p className="line-clamp-2">{advisory.description}</p>}
         </div>
       </div>
 
-      {/* Official Health Guidance (only if supplied by source) */}
+      {/* 3. Official Health Guidance (Strictly when supplied by source) */}
       {advisory.action_guidance && (
         <div
           className="p-3 rounded-xl text-xs space-y-1 border"
           style={{
-            backgroundColor: 'var(--surface)',
-            borderColor: 'var(--border-muted)',
+            backgroundColor: 'var(--surface-primary)',
+            borderColor: 'var(--border-subtle)',
             color: 'var(--text-primary)',
           }}
         >
@@ -142,17 +143,17 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
           >
             Official Public Health Guidance
           </span>
-          <p className="leading-relaxed">{advisory.action_guidance}</p>
+          <p className="leading-relaxed text-xs">{advisory.action_guidance}</p>
         </div>
       )}
 
-      {/* Footer: Station & CPCB Attribution */}
+      {/* 4. Footer: Station & CPCB Attribution */}
       <div
         className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-2 text-[11px] font-mono border-t"
-        style={{ borderColor: 'var(--border-muted)', color: 'var(--text-muted)' }}
+        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
       >
         <div className="flex items-center space-x-1.5">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+          <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
           <span>
             Station: {advisory.district || advisory.state || 'Local Station'}
           </span>
@@ -165,7 +166,8 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ advisory }) => {
               href={advisory.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1 underline hover:no-underline"
+              aria-label="Open CPCB CAAQM Portal in a new tab"
+              className="inline-flex items-center space-x-1 underline hover:no-underline cursor-pointer"
               style={{ color }}
             >
               <span>CAAQM Portal</span>
