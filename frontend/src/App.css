@@ -709,3 +709,12 @@ body {
 .stormops-rain-ripple-vandal {
   border-color: #fb923c;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .stormops-focal-marker::before,
+  .stormops-focal-marker::after,
+  .stormops-condition-halo,
+  .stormops-rain-ripple {
+    animation: none !important;
+  }
+}

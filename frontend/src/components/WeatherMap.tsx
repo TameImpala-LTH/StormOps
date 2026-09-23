@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { useTheme } from '../context/ThemeContext';
 import { GeocodedLocationSchema, TargetPeriodWeather } from '../types/weather';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../types/advisory';
-import { MapPin, Compass, Maximize2, Minimize2, ShieldAlert, Sun, Moon } from 'lucide-react';
+import { Compass, Maximize2, Minimize2, ShieldAlert, Sun, Moon } from 'lucide-react';
 
 export interface WeatherMapProps {
   location: GeocodedLocationSchema;
@@ -155,7 +155,7 @@ export function createAdvisoryMarkerHtml(tokens: SeverityThemeTokens, isUpcoming
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: var(--surface-elevated);
+      background: var(--surface-primary);
       border: 1.5px ${strokeStyle} ${tokens.stroke};
       box-shadow: 0 2px 10px rgba(0,0,0,0.35);
       display: flex;
@@ -262,8 +262,8 @@ export function createAdvisoryPopupHtml(
           font-size: 10px;
           padding: 6px 8px;
           border-radius: 6px;
-          background: var(--surface);
-          border: 1px solid var(--border-muted);
+          background: var(--surface-secondary);
+          border: 1px solid var(--border-subtle);
           color: var(--text-secondary);
           margin-bottom: 8px;
         ">
@@ -272,11 +272,11 @@ export function createAdvisoryPopupHtml(
       ` : ''}
 
       ${adv.source_url ? `
-        <div style="border-top: 1px solid var(--border-muted); padding-top: 6px; text-align: right;">
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 6px; text-align: right;">
           <a href="${escapeHtml(adv.source_url)}" target="_blank" rel="noopener noreferrer" style="
             font-size: 10px;
             font-family: monospace;
-            color: var(--accent);
+            color: var(--accent-primary);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -290,39 +290,25 @@ export function createAdvisoryPopupHtml(
   `;
 }
 
-
 // Configurable Basemap Tile Layer URL & Attribution (single source of truth)
 export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-
 // CSS filters applied to the Leaflet tilePane per theme.
-// Advisory polygons/circles/markers live in a separate LayerGroup pane — these
-// filters ONLY affect the base raster tile layer, NOT advisory geometry.
-// Visual intent per theme:
-//   Atheris  — cool blue-grey ("cloudy technical map")
-//   Vandal   — warm wine/maroon ("stormy maroon map") — NOT neon red
-//   Night    — deep purple/indigo atmospheric cast
-//   Light    — standard light map (no filter)
 function getTileFilter(theme: string, darkVariant: string): string {
   if (theme === 'light') return 'none';
   if (theme === 'night') {
-    // Deep purple/indigo cast — invert base, rotate hue toward violet, desaturate
     return 'brightness(0.38) invert(1) hue-rotate(210deg) saturate(0.50) contrast(0.85) sepia(0.12)';
   }
-  // theme === 'dark'
   if (darkVariant === 'vandal') {
-    // Warm wine/maroon feel — rotate hue slightly less than 180° to preserve warm tones
     return 'brightness(0.42) invert(1) hue-rotate(145deg) saturate(0.60) contrast(0.90) sepia(0.18)';
   }
   // Atheris (default dark) — cool blue-grey
   return 'brightness(0.48) invert(1) hue-rotate(180deg) saturate(0.55) contrast(0.88)';
 }
 
-// Layered atmospheric overlay rendered in a dedicated Leaflet pane (zIndex 250).
-// Sits strictly above tilePane (200) and strictly below overlayPane (400) and markerPane (600).
-// Preserves official advisory polygon colors and ensures road labels remain crisp and readable.
+// Atmospheric overlay rendered in dedicated Leaflet pane (zIndex 250).
 function applyAtmosphericOverlay(map: L.Map, effectiveTheme: string, darkVariant: string) {
   const atmoPane = map.getPane('atmosphericPane');
   if (!atmoPane) return;
@@ -357,8 +343,6 @@ function applyTileFilter(map: L.Map, theme: string, darkVariant: string) {
   applyAtmosphericOverlay(map, theme, darkVariant);
 }
 
-
-
 // Haversine great-circle distance (km) — pure local calculation, no API
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -390,8 +374,14 @@ function formatLocalTime(timezone: string): string {
   }
 }
 
-// Marker icon HTML — improved pill with colored indicator dot
-const createMarkerHtml = (
+export function getOptimalZoom(loc: GeocodedLocationSchema): number {
+  if (loc.locality) return 12;
+  if (loc.city || loc.district) return 11;
+  return 10;
+}
+
+// Marker icon HTML — elevated pill with colored indicator beacon and condition halo
+export const createMarkerHtml = (
   locName: string,
   pw: TargetPeriodWeather,
   accentColor: string = 'var(--accent)',
@@ -402,12 +392,12 @@ const createMarkerHtml = (
   const rain = pw.precipitation_probability;
 
   // Condition halo color — derived from temperature to represent weather intensity visually.
-  // Hot (>34°C) = amber aura, Cold (<10°C) = icy blue, Rain (>40%) = rain ripple, else = accent
+  // Hot (>34°C) = amber aura, Warm (>24°C) = accent, Mild (>10°C) = soft emerald, Cold (<10°C) = icy blue
   const haloColor =
-    temp >= 34 ? '#f97316'  // hot — orange/amber
-    : temp >= 25 ? accentColor  // warm — accent (red in Vandal, blue in Atheris)
-    : temp >= 10 ? '#34d399'  // mild — soft emerald
-    : '#60a5fa';  // cold — icy blue
+    temp >= 34 ? '#f97316'
+    : temp >= 24 ? accentColor
+    : temp >= 10 ? '#34d399'
+    : '#60a5fa';
   const showRainRipple = rain > 40;
   const rippleVandalClass = rainColor === '#fb923c' ? ' stormops-rain-ripple-vandal' : '';
 
@@ -418,8 +408,8 @@ const createMarkerHtml = (
       gap: 5px;
       padding: 5px 10px 5px 7px;
       border-radius: 9999px;
-      background-color: var(--surface);
-      border: 1px solid var(--border);
+      background-color: var(--surface-primary);
+      border: 1px solid var(--border-default);
       color: var(--text-primary);
       box-shadow: 0 4px 16px rgba(0,0,0,0.35);
       font-family: inherit;
@@ -437,7 +427,8 @@ const createMarkerHtml = (
         box-shadow: 0 0 5px ${accentColor};
       "></span>
       <span style="font-weight: 700; color: ${accentColor}; letter-spacing: -0.02em;">${temp}&deg;C</span>
-      <span style="font-weight: 500; color: var(--text-primary);">${locName}</span>
+      <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(locName)}</span>
+      ${rain > 0 ? `
       <span style="
         font-family: monospace;
         font-size: 9px;
@@ -446,7 +437,7 @@ const createMarkerHtml = (
         background-color: ${rainColor}1a;
         color: ${rainColor};
         border: 1px solid ${rainColor}38;
-      ">${rain}%</span>
+      ">${rain}%</span>` : ''}
     </div>
   `;
 
@@ -466,31 +457,32 @@ const createMarkerHtml = (
 };
 
 // Detailed popup HTML
-const createPopupHtml = (
+export const createPopupHtml = (
   loc: GeocodedLocationSchema,
   pw: TargetPeriodWeather,
   periodLabel: string
 ): string => {
-  const admin = loc.admin1 ? `, ${loc.admin1}` : '';
-  const country = loc.country ? `, ${loc.country}` : '';
-  const fullLoc = `${loc.name}${admin}${country}`;
+  const admin = loc.admin1 ? ` · ${escapeHtml(loc.admin1)}` : '';
+  const country = loc.country ? ` · ${escapeHtml(loc.country)}` : '';
+  const breadcrumb = `${admin}${country}`;
   return `
-    <div style="padding: 6px; font-family: inherit; min-width: 180px;">
-      <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">
-        ${fullLoc}
+    <div style="padding: 6px 8px; font-family: inherit; min-width: 190px; max-width: 260px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${escapeHtml(loc.name)}</span>
+        ${periodLabel ? `<span style="font-size: 9px; font-family: monospace; color: var(--text-tertiary); text-transform: uppercase;">${escapeHtml(periodLabel)}</span>` : ''}
       </div>
-      <div style="font-size: 10px; font-family: monospace; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
-        ${periodLabel}
+      <div style="font-size: 10px; font-family: monospace; color: var(--text-tertiary); margin-bottom: 8px;">
+        ${breadcrumb.replace(/^ · /, '')}
       </div>
-      <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px;">
-        <span style="font-size: 24px; font-weight: 300; color: var(--text-primary);">${Math.round(pw.temperature)}&deg;C</span>
-        <span style="font-size: 11px; color: var(--text-secondary); text-transform: capitalize;">${pw.condition}</span>
+      <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px;">
+        <span style="font-size: 24px; font-weight: 300; font-family: monospace; color: var(--text-primary);">${Math.round(pw.temperature)}&deg;C</span>
+        <span style="font-size: 11px; color: var(--text-secondary); text-transform: capitalize;">${escapeHtml(pw.condition)}</span>
       </div>
-      <div style="font-size: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border-top: 1px solid var(--border-muted); padding-top: 6px;">
-        <div><span style="color: var(--text-tertiary);">Feels like:</span> ${Math.round(pw.feels_like)}&deg;C</div>
+      <div style="font-size: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; border-top: 1px solid var(--border-subtle); padding-top: 6px; font-family: monospace;">
+        <div><span style="color: var(--text-tertiary);">Feels:</span> ${Math.round(pw.feels_like)}&deg;C</div>
         <div><span style="color: var(--text-tertiary);">Rain:</span> ${pw.precipitation_probability}%</div>
-        <div><span style="color: var(--text-tertiary);">Precip:</span> ${pw.precipitation} mm</div>
         <div><span style="color: var(--text-tertiary);">Wind:</span> ${pw.wind_speed} km/h</div>
+        <div><span style="color: var(--text-tertiary);">Humidity:</span> ${pw.humidity}%</div>
       </div>
     </div>
   `;
@@ -503,8 +495,8 @@ const createHoverPreviewHtml = (
   accentColor: string
 ): string => {
   const localTime = loc.timezone ? formatLocalTime(loc.timezone) : '';
-  const admin = loc.admin1 ? `, ${loc.admin1}` : '';
-  const fullLoc = `${loc.name}${admin}`;
+  const admin = loc.admin1 ? `, ${escapeHtml(loc.admin1)}` : '';
+  const fullLoc = `${escapeHtml(loc.name)}${admin}`;
   const timeRow = localTime
     ? `<div style="font-size: 10px; font-family: monospace; color: var(--text-tertiary); margin-bottom: 7px;">${localTime} local</div>`
     : '';
@@ -513,10 +505,10 @@ const createHoverPreviewHtml = (
       <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 1px;">${fullLoc}</div>
       ${timeRow}
       <div style="display: flex; align-items: baseline; gap: 5px; margin-bottom: 6px;">
-        <span style="font-size: 22px; font-weight: 300; color: ${accentColor};">${Math.round(pw.temperature)}&deg;C</span>
-        <span style="font-size: 10px; color: var(--text-secondary); text-transform: capitalize;">${pw.condition}</span>
+        <span style="font-size: 22px; font-weight: 300; font-family: monospace; color: ${accentColor};">${Math.round(pw.temperature)}&deg;C</span>
+        <span style="font-size: 10px; color: var(--text-secondary); text-transform: capitalize;">${escapeHtml(pw.condition)}</span>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; font-size: 10px; color: var(--text-secondary);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; font-size: 10px; color: var(--text-secondary); font-family: monospace;">
         <div><span style="color: var(--text-tertiary);">Rain</span> ${pw.precipitation_probability}%</div>
         <div><span style="color: var(--text-tertiary);">Wind</span> ${pw.wind_speed} km/h</div>
       </div>
@@ -524,8 +516,7 @@ const createHoverPreviewHtml = (
   `;
 };
 
-// Per-element hover handler registry — prevents duplicate listener accumulation.
-// Key: the marker's DOM element. Value: the bound handlers for that element.
+// Per-element hover handler registry — prevents duplicate listener accumulation
 type HoverHandlers = {
   onEnter: () => void;
   onLeave: () => void;
@@ -628,21 +619,15 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   const lng = location.longitude;
   const placeName = location.name;
 
-  // Theme-specific accent colors matching design tokens (including Atheris vs Vandal)
+  // Theme-specific accent colors matching design tokens
   const accentColorA = accentColor;
   const accentColorB =
     theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#fb923c' : '#a78bfa';
 
-  // Rain badge pill color in marker HTML — Vandal = supporting orange, all others = sky blue.
   const rainColorA = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
   const rainColorB = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
 
-
-  // ---------------------------------------------------------------------------
-  // Hover preview — rendered as a fixed-position overlay via document.body
-  // so it is never clipped by the map container's overflow:hidden.
-  // ---------------------------------------------------------------------------
-
+  // Hover preview
   const hideHoverPreview = useCallback(() => {
     if (hoverPreviewRef.current) {
       hoverPreviewRef.current.remove();
@@ -658,20 +643,18 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
 
       const card = document.createElement('div');
       card.innerHTML = createHoverPreviewHtml(loc, pw, accent);
-      // Style the card itself; position fixed so it escapes all overflow clipping
       Object.assign(card.style, {
         position: 'fixed',
         zIndex: '99999',
-        background: 'var(--surface-elevated)',
-        border: '1px solid var(--border)',
+        background: 'var(--surface-primary)',
+        border: '1px solid var(--border-default)',
         borderRadius: '12px',
         padding: '10px 13px',
         minWidth: '168px',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+        boxShadow: 'var(--shadow-lg, 0 8px 28px rgba(0,0,0,0.45))',
         fontFamily: 'inherit',
         fontSize: '13px',
         pointerEvents: 'none',
-        // Position: above the marker pill, aligned to its left edge
         top: `${markerRect.top - 8}px`,
         left: `${markerRect.left}px`,
         transform: 'translateY(-100%)',
@@ -683,18 +666,11 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     [hideHoverPreview]
   );
 
-  // ---------------------------------------------------------------------------
-  // attachHoverEvents — idempotent: removes any previously registered handlers
-  // for this DOM element before adding new ones, preventing accumulation.
-  // Uses a WeakMap so old elements are GC'd automatically.
-  // ---------------------------------------------------------------------------
-
   const attachHoverEvents = useCallback(
     (marker: L.Marker, loc: GeocodedLocationSchema, pw: TargetPeriodWeather, accent: string) => {
       const el = marker.getElement();
       if (!el) return;
 
-      // Remove any previously registered handlers on this element
       const existing = markerHandlers.get(el);
       if (existing) {
         el.removeEventListener('mouseenter', existing.onEnter);
@@ -702,7 +678,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         el.removeEventListener('touchstart', existing.onTouch);
       }
 
-      // Create new named handlers (closures capturing current loc/pw/accent)
       const onEnter = () => showHoverPreview(el, loc, pw, accent);
       const onLeave = () => hideHoverPreview();
       const onTouch = (e: Event) => {
@@ -719,13 +694,11 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       el.addEventListener('mouseleave', onLeave);
       el.addEventListener('touchstart', onTouch, { passive: true });
 
-      // Register so next call can remove them
       markerHandlers.set(el, { onEnter, onLeave, onTouch });
     },
     [showHoverPreview, hideHoverPreview]
   );
 
-  // Helper: detach listeners and clear registry for a given element
   const detachHoverEvents = useCallback((el: HTMLElement) => {
     const existing = markerHandlers.get(el);
     if (existing) {
@@ -736,10 +709,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     }
   }, []);
 
-  // ---------------------------------------------------------------------------
   // Comparison overlay helpers
-  // ---------------------------------------------------------------------------
-
   const updateComparisonOverlay = useCallback(
     (map: L.Map, latA: number, lngA: number, latB: number, lngB: number) => {
       if (polylineRef.current) { map.removeLayer(polylineRef.current); polylineRef.current = null; }
@@ -748,7 +718,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       const distKm = haversineKm(latA, lngA, latB, lngB);
       const distLabel = formatDistance(distKm);
 
-      // Dashed line — geographic separation between the two locations, not a route
       const line = L.polyline(
         [[latA, lngA], [latB, lngB]],
         { color: 'rgba(255,255,255,0.28)', weight: 1.5, dashArray: '5 7', interactive: false }
@@ -762,8 +731,8 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         html: `<div style="
           padding: 2px 8px;
           border-radius: 9999px;
-          background-color: var(--surface);
-          border: 1px solid var(--border-muted);
+          background-color: var(--surface-primary);
+          border: 1px solid var(--border-subtle);
           color: var(--text-tertiary);
           font-family: monospace;
           font-size: 10px;
@@ -790,16 +759,15 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     if (distanceMarkerRef.current) { map.removeLayer(distanceMarkerRef.current); distanceMarkerRef.current = null; }
   }, []);
 
-  // ---------------------------------------------------------------------------
   // Initialize Leaflet Map (runs once)
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
+      const optimalZoom = getOptimalZoom(location);
       const map = L.map(mapContainerRef.current, {
         center: [lat, lng],
-        zoom: 10,
+        zoom: optimalZoom,
         zoomControl: true,
         attributionControl: true,
       });
@@ -843,7 +811,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         const markerB = L.marker([locationB.latitude, locationB.longitude], { icon: customIconB }).addTo(map);
         markerB.bindPopup(createPopupHtml(locationB, weatherB, periodLabel));
         markerBRef.current = markerB;
-        map.fitBounds([[lat, lng], [locationB.latitude, locationB.longitude]], { padding: [50, 50] });
+        map.fitBounds([[lat, lng], [locationB.latitude, locationB.longitude]], { padding: [50, 50], maxZoom: 12 });
         updateComparisonOverlay(map, lat, lng, locationB.latitude, locationB.longitude);
       }
 
@@ -866,7 +834,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         popupDiv.style.textAlign = 'center';
         popupDiv.innerHTML = `
           <div style="font-size:11px;font-family:monospace;color:var(--text-secondary);margin-bottom:6px;">${clickLat}, ${clickLng}</div>
-          <button id="btn-check-weather-click" style="padding:4px 10px;font-size:11px;font-weight:500;border-radius:8px;background-color:var(--btn-primary-bg);color:var(--btn-primary-text);border:none;cursor:pointer;">Check weather here</button>
+          <button id="btn-check-weather-click" style="padding:4px 10px;font-size:11px;font-weight:500;border-radius:8px;background-color:var(--btn-primary-bg, #0284c7);color:var(--btn-primary-text, #ffffff);border:none;cursor:pointer;">Check weather here</button>
         `;
         clickMarker.bindPopup(popupDiv).openPopup();
         clickMarkerRef.current = clickMarker;
@@ -879,7 +847,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         }, 50);
       });
 
-      // Dismiss hover preview on map pan/zoom (but not on marker events)
+      // Dismiss hover preview on map pan/zoom
       map.on('movestart', () => hideHoverPreview());
 
       // Dedicated layer group for official advisories
@@ -905,24 +873,28 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------------------------------------------------------------------
   // ResizeObserver — invalidateSize on container resize
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const container = mapContainerRef.current;
-    if (!container) return;
+    if (!container || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => { mapInstanceRef.current?.invalidateSize(); });
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
 
-  // ---------------------------------------------------------------------------
-  // Synchronize markers and map view when props change.
-  // After any setIcon() call, Leaflet replaces the DOM element, so we must
-  // re-attach hover listeners. We do so with a short rAF delay so Leaflet
-  // has finished inserting the new element before we call getElement().
-  // attachHoverEvents() is idempotent — safe to call multiple times.
-  // ---------------------------------------------------------------------------
+  // Fullscreen Escape Key Handler
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExpanded]);
+
+  // Synchronize markers and map view when props change
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapReady) return;
@@ -964,10 +936,9 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         markerBRef.current.getPopup()?.setContent(createPopupHtml(locationB, weatherB, periodLabel));
       }
 
-      map.fitBounds([[lat, lng], [locationB.latitude, locationB.longitude]], { padding: [50, 50] });
+      map.fitBounds([[lat, lng], [locationB.latitude, locationB.longitude]], { padding: [50, 50], maxZoom: 12 });
       updateComparisonOverlay(map, lat, lng, locationB.latitude, locationB.longitude);
 
-      // Re-attach after Leaflet has replaced the DOM element
       requestAnimationFrame(() => {
         if (markerRef.current) attachHoverEvents(markerRef.current, location, weather, accentColorA);
         if (markerBRef.current) attachHoverEvents(markerBRef.current, locationB, weatherB, accentColorB);
@@ -980,7 +951,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         markerBRef.current = null;
       }
       removeComparisonOverlay(map);
-      map.flyTo([lat, lng], 10, { duration: 1.2, easeLinearity: 0.25 });
+      map.flyTo([lat, lng], getOptimalZoom(location), { duration: 1.2, easeLinearity: 0.25 });
 
       if (markerRef.current) {
         const oldEl = markerRef.current.getElement();
@@ -1002,9 +973,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     if (clickMarkerRef.current) { map.removeLayer(clickMarkerRef.current); clickMarkerRef.current = null; }
   }, [lat, lng, locationB?.latitude, locationB?.longitude, weather.temperature, weatherB?.temperature, periodLabel, theme, darkVariant, mapReady]);
 
-  // ---------------------------------------------------------------------------
   // Synchronize Official Advisories into advisoryLayerGroup (Rules 1-4)
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const advGroup = advisoryLayerGroupRef.current;
     if (!advGroup || !mapReady) return;
@@ -1015,7 +984,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
 
     for (const adv of advisories) {
       const temporalState = getAdvisoryTemporalState(adv);
-      // Do not create visual overlays for expired advisories
       if (temporalState === 'EXPIRED') continue;
 
       const geomType = getAdvisoryGeometryType(adv);
@@ -1075,9 +1043,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     }
   }, [advisories, mapReady]);
 
-  // ---------------------------------------------------------------------------
   // Toggle Advisory Layer Group visibility
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const map = mapInstanceRef.current;
     const advGroup = advisoryLayerGroupRef.current;
@@ -1094,9 +1060,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     }
   }, [showAdvisories, mapReady]);
 
-  // ---------------------------------------------------------------------------
-  // Theme or Map Mode change — update tile filter & atmospheric overlay + invalidateSize
-  // ---------------------------------------------------------------------------
+  // Theme or Map Mode change — update tile filter & atmospheric overlay
   useEffect(() => {
     if (!tileLayerRef.current || !mapInstanceRef.current) return;
     tileLayerRef.current.setUrl(TILE_URL);
@@ -1104,16 +1068,14 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     mapInstanceRef.current.invalidateSize();
   }, [effectiveTheme, darkVariant]);
 
-  // ---------------------------------------------------------------------------
   // Fullscreen toggle — invalidate size after CSS transition completes
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const timer = setTimeout(() => { mapInstanceRef.current?.invalidateSize(); }, 120);
     return () => clearTimeout(timer);
   }, [isExpanded]);
 
   const handleRecenter = () => {
-    if (mapInstanceRef.current) mapInstanceRef.current.flyTo([lat, lng], 10);
+    if (mapInstanceRef.current) mapInstanceRef.current.flyTo([lat, lng], getOptimalZoom(location));
   };
 
   const handleExpandToggle = () => {
@@ -1122,48 +1084,76 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   };
 
   return (
-    <div
+    <section
+      role="region"
+      aria-label="Spatial context and geographic weather map"
       className={isExpanded
-        ? 'fixed inset-0 z-[9000] flex flex-col bg-[var(--bg)] p-3 sm:p-4'
-        : 'space-y-3 pt-4'}
-      style={isExpanded ? undefined : { borderTop: '1px solid var(--border-muted)' }}
+        ? 'fixed inset-0 z-[9000] flex flex-col bg-[var(--surface-primary)] p-4 sm:p-6'
+        : 'w-full rounded-2xl p-5 sm:p-6 border space-y-4 transition-colors'}
+      style={isExpanded ? undefined : {
+        backgroundColor: 'var(--surface-primary)',
+        borderColor: 'var(--border-default)',
+      }}
     >
-      {/* Header Bar */}
-      <div className="flex items-center justify-between text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-        <span className="flex items-center gap-1.5 font-medium">
-          <MapPin className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-          INTERACTIVE WEATHER MAP
-          {locationB && (
+      {/* 1. Header: Spatial Context & Controls */}
+      <div
+        className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2 border-b"
+        style={{ borderColor: 'var(--border-subtle)' }}
+      >
+        <div>
+          <div className="flex items-center gap-2">
             <span
-              className="ml-2 font-mono text-[10px] px-1.5 py-0.5 rounded"
-              style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              className="type-label flex items-center gap-1.5"
+              style={{ color: 'var(--accent-primary)' }}
             >
-              COMPARISON
+              <Compass className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+              Spatial Context
             </span>
-          )}
-        </span>
+            <span className="type-meta text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              · Evidence
+            </span>
+            {locationB && (
+              <span
+                className="font-mono text-[10px] px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'var(--surface-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--accent-primary)',
+                }}
+              >
+                Comparison: A vs B
+              </span>
+            )}
+          </div>
+          <p className="type-meta text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            {location.name}
+            {location.admin1 ? ` · ${location.admin1}` : ''}
+            {location.country ? ` · ${location.country}` : ''}
+            {' — Geographic orientation & official advisory coverage'}
+          </p>
+        </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Controls cluster */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {advisoriesWithGeom.length > 0 && (
             <button
               type="button"
               onClick={() => setShowAdvisories((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono border cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono border cursor-pointer transition-colors"
               style={{
-                backgroundColor: showAdvisories ? 'rgba(244, 63, 94, 0.10)' : 'var(--surface-elevated)',
-                borderColor: showAdvisories ? 'rgba(244, 63, 94, 0.30)' : 'var(--border-muted)',
+                backgroundColor: showAdvisories ? 'rgba(244, 63, 94, 0.10)' : 'var(--surface-secondary)',
+                borderColor: showAdvisories ? 'rgba(244, 63, 94, 0.30)' : 'var(--border-subtle)',
                 color: showAdvisories ? '#f43f5e' : 'var(--text-secondary)',
               }}
               title={showAdvisories ? 'Hide official advisories on map' : 'Show official advisories on map'}
               aria-label="Toggle official advisories on map"
             >
-              <ShieldAlert className="w-3 h-3" />
+              <ShieldAlert className="w-3.5 h-3.5" />
               <span>{showAdvisories ? 'Advisories On' : 'Advisories Off'}</span>
               <span
-                className="font-mono text-[9px] px-1.5 py-0.2 rounded-full"
+                className="font-mono text-[10px] px-1.5 py-0.2 rounded-full font-bold"
                 style={{
-                  background: showAdvisories ? 'rgba(244, 63, 94, 0.20)' : 'var(--surface)',
-                  border: '1px solid var(--border-muted)',
+                  background: showAdvisories ? 'rgba(244, 63, 94, 0.20)' : 'var(--surface-primary)',
                   color: showAdvisories ? '#f43f5e' : 'var(--text-tertiary)',
                 }}
               >
@@ -1176,10 +1166,10 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
           <button
             type="button"
             onClick={toggleMapMode}
-            className="inline-flex items-center justify-center p-1.5 rounded-lg text-[11px] font-mono border cursor-pointer transition-colors"
+            className="inline-flex items-center justify-center p-1.5 rounded-xl text-xs font-mono border cursor-pointer transition-colors"
             style={{
-              backgroundColor: 'var(--surface-elevated)',
-              borderColor: 'var(--border-muted)',
+              backgroundColor: 'var(--surface-secondary)',
+              borderColor: 'var(--border-subtle)',
               color: 'var(--text-secondary)',
             }}
             title={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
@@ -1192,58 +1182,78 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
             )}
           </button>
 
+          {/* Recenter */}
           <button
             type="button"
             onClick={handleRecenter}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono border cursor-pointer transition-colors"
-            style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-mono border cursor-pointer transition-colors"
+            style={{
+              backgroundColor: 'var(--surface-secondary)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
             title="Recenter map on selected location"
+            aria-label="Recenter map on selected location"
           >
-            <Compass className="w-3 h-3" /> Recenter
+            <Compass className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Recenter</span>
           </button>
+
+          {/* Fullscreen Expand/Collapse */}
           <button
             type="button"
             onClick={handleExpandToggle}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono border cursor-pointer transition-colors"
-            style={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border-muted)', color: 'var(--text-secondary)' }}
-            title={isExpanded ? 'Exit fullscreen map' : 'Expand map'}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-mono border cursor-pointer transition-colors"
+            style={{
+              backgroundColor: 'var(--surface-secondary)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
+            title={isExpanded ? 'Exit fullscreen map (Esc)' : 'Expand map fullscreen'}
+            aria-label={isExpanded ? 'Exit fullscreen map' : 'Expand map fullscreen'}
           >
-            {isExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+            {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isExpanded ? 'Exit' : 'Expand'}</span>
           </button>
         </div>
       </div>
 
-      {/* Map Element Container */}
+      {/* 2. Map Canvas Container */}
       <div
         ref={mapWrapperRef}
-        className={`w-full rounded-2xl overflow-hidden relative shadow-inner ${isExpanded ? 'flex-1' : 'h-[300px] sm:h-[340px]'}`}
-        style={{ border: '1px solid var(--border)' }}
+        className={`w-full rounded-2xl overflow-hidden relative shadow-sm transition-all ${
+          isExpanded ? 'flex-1' : 'h-[320px] sm:h-[380px] lg:h-[420px]'
+        }`}
+        style={{ border: '1px solid var(--border-default)' }}
       >
         <div ref={mapContainerRef} className="w-full h-full z-0" />
-
-        {/* Leaflet Control Stack — Sun/Moon Map Mode Toggle directly underneath zoom controls */}
-        <div className="absolute top-[80px] left-[10px] z-[1000]">
-          <button
-            type="button"
-            onClick={toggleMapMode}
-            className="w-[30px] h-[30px] flex items-center justify-center rounded-[4px] border transition-colors cursor-pointer shadow-md"
-            style={{
-              backgroundColor: 'var(--surface-elevated)',
-              borderColor: 'var(--border-muted)',
-              color: 'var(--text-primary)',
-            }}
-            title={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
-            aria-label={mapMode === 'dark' ? 'Switch map to Light mode' : 'Switch map to Dark mode'}
-          >
-            {mapMode === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-400" />
-            )}
-          </button>
-        </div>
       </div>
 
-    </div>
+      {/* 3. Compact Map Legend */}
+      <div className="flex items-center justify-between gap-4 text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColorA }} />
+            <span>Selected location</span>
+          </div>
+          {locationB && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColorB }} />
+              <span>Comparison location</span>
+            </div>
+          )}
+          {advisoriesWithGeom.length > 0 && showAdvisories && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-2 rounded-xs border border-[#f43f5e] bg-[rgba(244,63,94,0.2)]" />
+              <span>Official advisory</span>
+            </div>
+          )}
+        </div>
+
+        <p className="hidden md:inline text-[11px]">
+          Click anywhere on the map to explore weather coordinates
+        </p>
+      </div>
+    </section>
   );
 };
