@@ -4,7 +4,7 @@ import { HourlyForecast } from '../types/weather';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import { useTheme } from '../context/ThemeContext';
 
-interface InteractiveForecastChartProps {
+export interface InteractiveForecastChartProps {
   items: HourlyForecast[];
   periodTitle: string;
   /** Timezone string e.g. "Asia/Kolkata" — used to identify the current local hour */
@@ -17,24 +17,24 @@ interface InteractiveForecastChartProps {
 // Time utilities
 // ---------------------------------------------------------------------------
 
-function parseHour(t: string): number {
+export function parseHour(t: string): number {
   const timePart = t.includes('T') ? t.split('T')[1].slice(0, 5) : t.slice(0, 5);
   return parseInt(timePart.split(':')[0] ?? '0', 10);
 }
 
-function parseMinute(t: string): number {
+export function parseMinute(t: string): number {
   const timePart = t.includes('T') ? t.split('T')[1].slice(0, 5) : t.slice(0, 5);
   return parseInt(timePart.split(':')[1] ?? '0', 10);
 }
 
-function fmtShort(t: string): string {
+export function fmtShort(t: string): string {
   const h = parseHour(t);
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12} ${ampm}`;
 }
 
-function fmtFull(t: string): string {
+export function fmtFull(t: string): string {
   const h = parseHour(t);
   const m = parseMinute(t);
   const ampm = h >= 12 ? 'PM' : 'AM';
@@ -63,7 +63,7 @@ function getCurrentHourInTz(timezone?: string | null): number {
 }
 
 // ---------------------------------------------------------------------------
-// Smooth cubic Catmull-Rom spline path builder
+// Smooth cubic Catmull-Rom spline path builder (Strictly visual smoothing)
 // ---------------------------------------------------------------------------
 
 function smoothPath(pts: Array<{ x: number; y: number }>): string {
@@ -88,6 +88,27 @@ function areaPath(pts: Array<{ x: number; y: number }>, bottomY: number): string
   if (pts.length < 2) return '';
   const line = smoothPath(pts);
   return `${line} L ${pts[pts.length - 1].x} ${bottomY} L ${pts[0].x} ${bottomY} Z`;
+}
+
+// ---------------------------------------------------------------------------
+// Nearest forecast index resolver across continuous interaction surface
+// ---------------------------------------------------------------------------
+
+export function findNearestForecastIndex(
+  svgX: number,
+  points: Array<{ x: number; idx: number }>
+): number {
+  if (points.length === 0) return 0;
+  let best = points[0].idx;
+  let minDiff = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    const diff = Math.abs(points[i].x - svgX);
+    if (diff < minDiff) {
+      minDiff = diff;
+      best = points[i].idx;
+    }
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +212,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
   // Layout geometry
   const W = 640;
   const pL = 28;     // pad left
-  const pR = 16;     // pad right
+  const pR = 20;     // pad right
   const pTop = 44;   // room above curve: condition icons + temp labels
   const cH = 96;     // temperature curve height
   const prH = 26;    // precipitation bar height
@@ -200,7 +221,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
   const curveBottom = pTop + cH;
   const precipBottom = pTop + cH + prH;
 
-  // Accent color from theme (Atheris sky blue, Vandal neon red, Light emerald, Midnight amber)
+  // Accent color from theme
   const accent = accentColor;
   const gradId = `fcg-${theme}-${accent.replace('#', '')}`;
 
@@ -209,8 +230,8 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
 
   // Computed temperature range
   const temps = items.map((i) => Math.round(i.temperature));
-  const minT = Math.min(...temps) - 1;
-  const maxT = Math.max(...temps) + 1;
+  const minT = temps.length > 0 ? Math.min(...temps) - 1 : 0;
+  const maxT = temps.length > 0 ? Math.max(...temps) + 1 : 30;
   const tRange = Math.max(1, maxT - minT);
 
   const getX = useCallback(
@@ -285,20 +306,21 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
     return r;
   }, [items]);
 
-  // Axis points: every 3 hours + start + end
+  // Orientation Axis Points: Every 3 hours + start + end
   const axisPts = useMemo(
     () => pts.filter((p, i) => i === 0 || i === pts.length - 1 || p.h % 3 === 0),
     [pts]
   );
 
   const labelEvery = pts.length > 20 ? 4 : pts.length > 12 ? 3 : 2;
-  const hitWidth = Math.max(18, (W - pL - pR) / pts.length);
+  const hitWidth = pts.length > 0 ? (W - pL - pR) / pts.length : 20;
 
   // Interaction handlers
   const getSvgX = useCallback((e: React.MouseEvent | React.TouchEvent): number | null => {
     const svg = svgRef.current;
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
+    if (rect.width === 0) return null;
     const clientX =
       'touches' in e
         ? e.touches[0]?.clientX ?? (e as React.TouchEvent).changedTouches[0]?.clientX ?? 0
@@ -306,32 +328,13 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
     return ((clientX - rect.left) / rect.width) * W;
   }, []);
 
-  const findNearest = useCallback(
-    (svgX: number): number => {
-      let best = 0;
-      let bd = Infinity;
-      pts.forEach((p) => {
-        const d = Math.abs(p.x - svgX);
-        if (d < bd) {
-          bd = d;
-          best = p.idx;
-        }
-      });
-      return best;
-    },
-    [pts]
-  );
-
   const selectHour = useCallback(
     (idx: number, svgX?: number) => {
       setSelectedIdx(idx);
-      if (svgX !== undefined) {
-        setTooltipLeft(svgX > W * 0.55);
-      } else {
-        setTooltipLeft(getX(idx) > W * 0.55);
-      }
+      const posX = svgX !== undefined ? svgX : getX(idx);
+      setTooltipLeft(posX > W * 0.55);
       if (onInspectHour) {
-        onInspectHour(items[idx]);
+        onInspectHour(items[idx] ?? null);
       }
     },
     [items, getX, onInspectHour]
@@ -345,10 +348,10 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
       }
       const x = getSvgX(e);
       if (x === null) return;
-      const idx = findNearest(x);
+      const idx = findNearestForecastIndex(x, pts);
       selectHour(idx, x);
     },
-    [getSvgX, findNearest, selectHour]
+    [getSvgX, pts, selectHour]
   );
 
   const onLeave = useCallback(() => {
@@ -360,7 +363,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
 
   const onTouchEnd = useCallback(() => {
     if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
-    // After 2.5 seconds of inactivity, smoothly return to current/now state
+    // After 2.5 seconds of touch inactivity, smoothly return to current/now state
     touchTimerRef.current = setTimeout(() => {
       setSelectedIdx(null);
       if (onInspectHour) {
@@ -369,7 +372,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
     }, 2500);
   }, [onInspectHour]);
 
-  // Keyboard navigation for accessibility
+  // Keyboard navigation for full sequential scrubbing
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
@@ -380,6 +383,12 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
         e.preventDefault();
         const next = selectedIdx === null ? (currentIdx !== null ? currentIdx : 0) : Math.max(0, selectedIdx - 1);
         selectHour(next);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        selectHour(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        selectHour(items.length - 1);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onLeave();
@@ -394,7 +403,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
     };
   }, []);
 
-  const active = selectedIdx !== null ? pts[selectedIdx] : null;
+  const active = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < pts.length ? pts[selectedIdx] : null;
 
   return (
     <section
@@ -451,7 +460,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
         </div>
       </div>
 
-      {/* 2. Interactive SVG Chart Area */}
+      {/* 2. Interactive SVG Chart Area with Continuous Interaction */}
       <div className="relative">
         <div
           className="w-full overflow-x-auto"
@@ -471,7 +480,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                 onInteract(e);
               }}
               onTouchEnd={onTouchEnd}
-              style={{ touchAction: 'pan-y' }}
+              style={{ touchAction: 'none' }}
             >
               <defs>
                 <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -515,11 +524,11 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                 </g>
               ))}
 
-              {/* Precipitation bars (Semantic meteorological blue, never theme red) */}
+              {/* Precipitation bars (Semantic meteorological blue across full interval) */}
               {pts.map((p) => {
                 const barH = prH * (p.rain / 100);
                 const isSel = selectedIdx === p.idx;
-                const barW = Math.max(5, hitWidth * 0.68);
+                const barW = Math.max(5, hitWidth * 0.72);
                 const col =
                   p.rain >= 70
                     ? '#38bdf8'
@@ -537,6 +546,8 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                     rx={2}
                     fill={col}
                     opacity={isSel ? 1 : 0.65}
+                    stroke={isSel ? '#38bdf8' : 'none'}
+                    strokeWidth={isSel ? 1 : 0}
                     className="transition-opacity duration-150"
                   />
                 );
@@ -567,7 +578,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                 strokeLinejoin="round"
               />
 
-              {/* NOW Vertical Marker (Permanently anchored at current hour) */}
+              {/* NOW Vertical Marker (Permanently anchored at current hour, independent of selection) */}
               {(() => {
                 const cp = pts[currentIdx];
                 if (!cp) return null;
@@ -597,26 +608,76 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                 );
               })()}
 
-              {/* Selected-hour scrubber line */}
+              {/* Selected-hour scrubber line and guide */}
               {active && (
-                <line
-                  x1={active.x}
-                  y1={pTop - 6}
-                  x2={active.x}
-                  y2={precipBottom}
-                  stroke="var(--text-secondary)"
-                  strokeWidth={1}
-                  strokeOpacity={0.5}
-                  strokeDasharray="2 3"
-                />
+                <g key="inspection-guide">
+                  <line
+                    x1={active.x}
+                    y1={pTop - 10}
+                    x2={active.x}
+                    y2={precipBottom}
+                    stroke={accent}
+                    strokeWidth={1.2}
+                    strokeDasharray="3 3"
+                  />
+                  {/* Halo and highlight dot on curve */}
+                  <circle
+                    cx={active.x}
+                    cy={active.y}
+                    r={7}
+                    fill={accent}
+                    fillOpacity={0.25}
+                  />
+                  <circle
+                    cx={active.x}
+                    cy={active.y}
+                    r={4.5}
+                    fill={accent}
+                    stroke="var(--surface-primary)"
+                    strokeWidth={2}
+                  />
+                  {/* Active temperature numeral */}
+                  <text
+                    x={active.x}
+                    y={active.y - 10}
+                    textAnchor="middle"
+                    fontSize={10.5}
+                    fontWeight="700"
+                    fill={accent}
+                    fontFamily="monospace"
+                  >
+                    {active.temp}°
+                  </text>
+                  {/* Active condition icon */}
+                  <foreignObject
+                    x={active.x - 7}
+                    y={pTop - 36}
+                    width={14}
+                    height={14}
+                    style={{ overflow: 'visible', pointerEvents: 'none' }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 1,
+                      }}
+                    >
+                      {getWeatherIcon(active.code, 'w-3.5 h-3.5')}
+                    </div>
+                  </foreignObject>
+                </g>
               )}
 
-              {/* Points, icons, and temperature numerals */}
+              {/* Idle points, icons, and temperature numerals */}
               {pts.map((p) => {
                 const isSel = selectedIdx === p.idx;
+                if (isSel) return null; // Rendered in inspection-guide above
+
                 const isCurr = p.isCurrent;
-                const showLabel = isSel || isCurr || p.idx % labelEvery === 0;
-                const showIcon = p.idx % 3 === 0 || isSel;
+                const showLabel = isCurr || p.idx % labelEvery === 0;
+                const showIcon = p.idx % 3 === 0;
 
                 return (
                   <g key={`pt-${p.idx}`}>
@@ -634,7 +695,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            opacity: isSel ? 1 : 0.6,
+                            opacity: 0.6,
                             transition: 'opacity 0.15s',
                           }}
                         >
@@ -649,9 +710,9 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                         x={p.x}
                         y={p.y - 8}
                         textAnchor="middle"
-                        fontSize={isSel || isCurr ? 10 : 9}
-                        fontWeight={isSel || isCurr ? '700' : '400'}
-                        fill={isSel ? accent : isCurr ? accent : 'var(--text-primary)'}
+                        fontSize={isCurr ? 10 : 9}
+                        fontWeight={isCurr ? '700' : '400'}
+                        fill={isCurr ? accent : 'var(--text-primary)'}
                         fontFamily="monospace"
                       >
                         {p.temp}°
@@ -662,41 +723,81 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
                     <circle
                       cx={p.x}
                       cy={p.y}
-                      r={isSel ? 5.5 : isCurr ? 4 : 2.5}
-                      fill={isSel ? accent : 'var(--surface-primary)'}
+                      r={isCurr ? 4 : 2}
+                      fill={isCurr ? accent : 'var(--surface-primary)'}
                       stroke={accent}
-                      strokeWidth={isSel ? 0 : isCurr ? 2.5 : 1.5}
+                      strokeWidth={isCurr ? 2 : 1}
                       className="transition-all duration-100"
-                    />
-
-                    {/* Interactive hit region */}
-                    <rect
-                      x={p.x - hitWidth / 2}
-                      y={pTop - 8}
-                      width={hitWidth}
-                      height={totalH - pTop - pBot + 8}
-                      fill="transparent"
-                      style={{ cursor: 'crosshair' }}
                     />
                   </g>
                 );
               })}
 
-              {/* Time axis labels */}
-              {axisPts.map((p) => (
-                <text
-                  key={`ax-${p.idx}`}
-                  x={p.x}
-                  y={totalH - 8}
-                  textAnchor={p.idx === 0 ? 'start' : p.idx === pts.length - 1 ? 'end' : 'middle'}
-                  fontSize={9}
-                  fill={p.isCurrent ? accent : 'var(--text-secondary)'}
-                  fontFamily="monospace"
-                  fontWeight={p.isCurrent ? '600' : '400'}
-                >
-                  {p.h === 0 && p.idx > 0 ? '00:00' : fmtShort(p.raw.time)}
-                </text>
-              ))}
+              {/* Intermediate ticks for all available hours along the time axis */}
+              {pts.map((p) => {
+                const isMajor = p.h % 3 === 0 || p.idx === 0 || p.idx === pts.length - 1;
+                return (
+                  <line
+                    key={`tick-${p.idx}`}
+                    x1={p.x}
+                    y1={isMajor ? totalH - 24 : totalH - 21}
+                    x2={p.x}
+                    y2={totalH - 18}
+                    stroke={isMajor ? 'var(--border-default)' : 'var(--border-subtle)'}
+                    strokeWidth={isMajor ? 1.2 : 0.8}
+                    opacity={isMajor ? 0.8 : 0.45}
+                  />
+                );
+              })}
+
+              {/* Orientation Axis Labels (3-Hour intervals + start/end) */}
+              {axisPts.map((p) => {
+                // If this point is close to the currently inspected point, hide to prevent overlap
+                const isOverlapped = active && Math.abs(active.x - p.x) < 18;
+                if (isOverlapped) return null;
+
+                return (
+                  <text
+                    key={`ax-${p.idx}`}
+                    x={p.x}
+                    y={totalH - 8}
+                    textAnchor={p.idx === 0 ? 'start' : p.idx === pts.length - 1 ? 'end' : 'middle'}
+                    fontSize={9}
+                    fill={p.isCurrent ? accent : 'var(--text-secondary)'}
+                    fontFamily="monospace"
+                    fontWeight={p.isCurrent ? '600' : '400'}
+                  >
+                    {p.h === 0 && p.idx > 0 ? '00:00' : fmtShort(p.raw.time)}
+                  </text>
+                );
+              })}
+
+              {/* Active Inspected Hour Axis Badge (visibly identifies any selected intermediate or major hour) */}
+              {active && (
+                <g key="active-axis-badge" className="transition-all duration-75">
+                  <rect
+                    x={Math.max(4, Math.min(W - 48, active.x - 22))}
+                    y={totalH - 17}
+                    width={44}
+                    height={15}
+                    rx={3}
+                    fill="var(--surface-primary)"
+                    stroke={accent}
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={Math.max(26, Math.min(W - 26, active.x))}
+                    y={totalH - 6.5}
+                    textAnchor="middle"
+                    fontSize={8.5}
+                    fontWeight="700"
+                    fill={accent}
+                    fontFamily="monospace"
+                  >
+                    {fmtShort(active.raw.time)}
+                  </text>
+                </g>
+              )}
 
               {/* "rain" indicator */}
               <text
@@ -709,6 +810,16 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
               >
                 rain
               </text>
+
+              {/* Continuous full-width interactive hit surface */}
+              <rect
+                x={0}
+                y={0}
+                width={W}
+                height={totalH}
+                fill="transparent"
+                style={{ cursor: 'crosshair', touchAction: 'none' }}
+              />
             </svg>
           </div>
         </div>
@@ -717,7 +828,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
         {active && (
           <div
             className="absolute top-1 z-10 pointer-events-none"
-            style={{ [tooltipLeft ? 'right' : 'left']: '8px' }}
+            style={{ [tooltipLeft ? 'right' : 'left']: '12px' }}
           >
             <TooltipCard item={active.raw} isCurrent={active.isCurrent} />
           </div>
@@ -730,7 +841,7 @@ export const InteractiveForecastChart: React.FC<InteractiveForecastChartProps> =
           className="text-center text-[11px] font-mono"
           style={{ color: 'var(--text-tertiary)' }}
         >
-          Hover, drag, or use Arrow keys to inspect hourly evidence
+          Hover, drag, or use Arrow keys to inspect every hourly forecast point
         </p>
       )}
     </section>

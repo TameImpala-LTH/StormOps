@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { InteractiveForecastChart } from './InteractiveForecastChart';
+import {
+  InteractiveForecastChart,
+  findNearestForecastIndex,
+} from './InteractiveForecastChart';
 import { WeatherAnswerSurface } from './WeatherAnswerSurface';
 import { HourlyForecast, QueryResponse } from '../types/weather';
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 
-describe('Phase UI-06: 24-Hour Forecast Intelligence Tests', () => {
+describe('Phase UI-06.2: 24-Hour Forecast Continuity & Telemetry Balance Tests', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -76,7 +79,6 @@ describe('Phase UI-06: 24-Hour Forecast Intelligence Tests', () => {
     const svg = container.querySelector('svg[aria-label="24-hour weather timeline chart"]');
     expect(svg).toBeDefined();
 
-    // Mock bounding rect for SVG
     if (svg) {
       vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
         left: 0,
@@ -109,7 +111,174 @@ describe('Phase UI-06: 24-Hour Forecast Intelligence Tests', () => {
     }
   });
 
-  it('supports keyboard navigation via ArrowRight, ArrowLeft, and Escape', () => {
+  it('REGRESSION: 3-hour axis labels are NOT the only selectable points; intermediate hour (13:00) is inspectable', () => {
+    const handleInspect = vi.fn();
+
+    // Dataset containing 12:00, 13:00, 14:00, 15:00
+    // Major orientation labels only show 12:00 and 15:00
+    // 13:00 and 14:00 are intermediate hours between the labels
+    const sampleItems: HourlyForecast[] = [
+      {
+        time: '2026-09-23T12:00:00Z',
+        temperature: 28.0,
+        feels_like: 31.0,
+        condition: 'scattered clouds',
+        weather_code: 2,
+        precipitation_probability: 20,
+        precipitation: 0,
+        wind_speed: 10,
+      },
+      {
+        time: '2026-09-23T13:00:00Z', // Intermediate hour (1 PM)
+        temperature: 29.5,
+        feels_like: 33.0,
+        condition: 'light rain',
+        weather_code: 61,
+        precipitation_probability: 60,
+        precipitation: 1.5,
+        wind_speed: 14,
+      },
+      {
+        time: '2026-09-23T14:00:00Z', // Intermediate hour (2 PM)
+        temperature: 27.0,
+        feels_like: 30.0,
+        condition: 'heavy rain',
+        weather_code: 65,
+        precipitation_probability: 80,
+        precipitation: 3.2,
+        wind_speed: 18,
+      },
+      {
+        time: '2026-09-23T15:00:00Z',
+        temperature: 26.0,
+        feels_like: 29.0,
+        condition: 'overcast',
+        weather_code: 3,
+        precipitation_probability: 40,
+        precipitation: 0.5,
+        wind_speed: 12,
+      },
+    ];
+
+    const { container } = render(
+      <ThemeProvider>
+        <InteractiveForecastChart
+          items={sampleItems}
+          periodTitle="Afternoon"
+          timezone="UTC"
+          onInspectHour={handleInspect}
+        />
+      </ThemeProvider>
+    );
+
+    const svg = container.querySelector('svg[aria-label="24-hour weather timeline chart"]');
+    expect(svg).toBeDefined();
+
+    if (svg) {
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: 640,
+        bottom: 200,
+        width: 640,
+        height: 200,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      });
+
+      // Layout geometry: W=640, pL=28, pR=20 -> total width = 592
+      // Step = 592 / 3 = 197.33
+      // Index 0 (12:00) -> X = 28
+      // Index 1 (13:00) -> X = 28 + 197.33 = 225.33
+      // Index 2 (14:00) -> X = 28 + 394.66 = 422.66
+      // Index 3 (15:00) -> X = 620
+      // Simulate hover specifically around 13:00 (clientX = 225)
+      fireEvent.mouseMove(svg, { clientX: 225, clientY: 100 });
+
+      expect(handleInspect).toHaveBeenCalled();
+      const selected = handleInspect.mock.calls[0][0];
+      expect(selected).toBeDefined();
+      expect(selected.time).toBe('2026-09-23T13:00:00Z');
+      expect(selected.temperature).toBe(29.5);
+      expect(selected.condition).toBe('light rain');
+
+      // Verify the tooltip displays the intermediate hour 1:00 PM
+      expect(screen.getByRole('tooltip').textContent).toContain('1:00 PM');
+      expect(screen.getByRole('tooltip').textContent).toContain('light rain');
+      expect(screen.getByRole('tooltip').textContent).toContain('30°C');
+    }
+  });
+
+  it('accurately resolves nearest forecast index across continuous timeline via findNearestForecastIndex', () => {
+    const points = [
+      { x: 28, idx: 0 },
+      { x: 100, idx: 1 },
+      { x: 200, idx: 2 },
+      { x: 300, idx: 3 },
+      { x: 400, idx: 4 },
+      { x: 500, idx: 5 },
+      { x: 620, idx: 6 },
+    ];
+
+    // Left of first point
+    expect(findNearestForecastIndex(10, points)).toBe(0);
+    // Closest to index 1 (100)
+    expect(findNearestForecastIndex(95, points)).toBe(1);
+    expect(findNearestForecastIndex(140, points)).toBe(1);
+    // Closest to index 2 (200)
+    expect(findNearestForecastIndex(160, points)).toBe(2);
+    expect(findNearestForecastIndex(240, points)).toBe(2);
+    // Right of last point
+    expect(findNearestForecastIndex(700, points)).toBe(6);
+  });
+
+  it('keeps NOW marker separate from the inspected hour', () => {
+    const handleInspect = vi.fn();
+
+    // Items starting from 06:00. If current local hour is 12:00, currentIdx is 6 (12:00).
+    const { container } = render(
+      <ThemeProvider>
+        <InteractiveForecastChart
+          items={mockHourlyItems}
+          periodTitle="Today"
+          timezone="UTC"
+          onInspectHour={handleInspect}
+        />
+      </ThemeProvider>
+    );
+
+    const svg = container.querySelector('svg[aria-label="24-hour weather timeline chart"]');
+    if (svg) {
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: 640,
+        bottom: 200,
+        width: 640,
+        height: 200,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      });
+
+      // Scrub to hour at the far right (~hour index 20, 02:00 next day)
+      fireEvent.mouseMove(svg, { clientX: 550, clientY: 100 });
+
+      // NOW marker text must still be present and not displaced
+      const nowLabel = screen.getByText('NOW');
+      expect(nowLabel).toBeDefined();
+
+      // Tooltip must show the inspected hour, not the NOW hour
+      const tooltip = screen.getByRole('tooltip');
+      expect(tooltip).toBeDefined();
+      expect(handleInspect).toHaveBeenCalled();
+      const lastCall = handleInspect.mock.calls[handleInspect.mock.calls.length - 1][0];
+      expect(lastCall).toBeDefined();
+    }
+  });
+
+  it('supports full keyboard scrubbing via ArrowRight, ArrowLeft, Home, End, and Escape', () => {
     const handleInspect = vi.fn();
 
     render(
@@ -126,13 +295,21 @@ describe('Phase UI-06: 24-Hour Forecast Intelligence Tests', () => {
     const region = screen.getByRole('region', { name: /24-hour weather forecast timeline/i });
     expect(region).toBeDefined();
 
-    // ArrowRight moves to next hour
+    // ArrowRight steps to next hour
     fireEvent.keyDown(region, { key: 'ArrowRight' });
     expect(handleInspect).toHaveBeenCalled();
 
-    // ArrowLeft moves back
+    // Home jumps to hour 0
+    fireEvent.keyDown(region, { key: 'Home' });
+    expect(handleInspect).toHaveBeenCalledWith(mockHourlyItems[0]);
+
+    // End jumps to final hour (index 23)
+    fireEvent.keyDown(region, { key: 'End' });
+    expect(handleInspect).toHaveBeenCalledWith(mockHourlyItems[23]);
+
+    // ArrowLeft steps back to index 22
     fireEvent.keyDown(region, { key: 'ArrowLeft' });
-    expect(handleInspect).toHaveBeenCalled();
+    expect(handleInspect).toHaveBeenCalledWith(mockHourlyItems[22]);
 
     // Escape resets inspection
     fireEvent.keyDown(region, { key: 'Escape' });

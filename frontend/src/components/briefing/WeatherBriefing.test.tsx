@@ -244,6 +244,10 @@ describe('Phase UI-05: Weather Briefing Components & Hierarchy Tests', () => {
       expect(grid4.className).toContain('sm:grid-cols-4');
       expect(grid4.className).not.toContain('sm:grid-cols-5');
       expect(grid4.className).not.toContain('lg:grid-cols-5');
+
+      // Verify each column contains centered content structure avoiding leftward skew
+      expect(grid4.children[0].className).toContain('justify-start sm:justify-center');
+      expect(grid4.children[3].className).toContain('justify-start sm:justify-center');
     });
 
     it('renders AQI in telemetry when official air quality advisory is present with 5 columns', () => {
