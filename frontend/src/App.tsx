@@ -18,6 +18,9 @@ const Sidebar = lazy(() =>
 const AuthModal = lazy(() =>
   import('./components/auth/AuthModal').then((m) => ({ default: m.AuthModal }))
 );
+const EventsDrawer = lazy(() =>
+  import('./components/events/EventsDrawer').then((m) => ({ default: m.EventsDrawer }))
+);
 import { postWeatherQuery } from './services/weather';
 import { fetchConversationDetail } from './services/auth';
 import { CoordinateInput, GeocodedLocationSchema, LanguageCode, QueryResponse } from './types/weather';
@@ -35,8 +38,9 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('auto');
 
-  // Sidebar & Auth modal states
+  // Sidebar, Events drawer & Auth modal states
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isEventsDrawerOpen, setIsEventsDrawerOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>(undefined);
@@ -192,6 +196,9 @@ function AppContent() {
         onReset={handleReset}
         onOpenSidebar={() => setIsSidebarOpen(true)}
         onOpenAuthModal={handleOpenAuthModal}
+        onOpenEvents={() => setIsEventsDrawerOpen(true)}
+        isEventsOpen={isEventsDrawerOpen}
+        eventCount={queryResponse?.environmental_events?.length ?? 0}
         searchSlot={
           queryResponse || isThreadActive || isLoading || error ? (
             <QueryInput
@@ -205,6 +212,22 @@ function AppContent() {
           ) : undefined
         }
       />
+
+      {/* Events & Information Surface Drawer */}
+      {isEventsDrawerOpen && (
+        <Suspense fallback={null}>
+          <EventsDrawer
+            isOpen={isEventsDrawerOpen}
+            onClose={() => setIsEventsDrawerOpen(false)}
+            events={queryResponse?.environmental_events || []}
+            onSelectLocation={(locationName) => {
+              setIsEventsDrawerOpen(false);
+              handleQuerySubmit(`What is the weather in ${locationName}?`);
+            }}
+            activeLocationName={activeLocation?.name}
+          />
+        </Suspense>
+      )}
 
       {/* Sidebar Navigation Drawer */}
       {isSidebarOpen && (
@@ -344,7 +367,7 @@ function AppContent() {
           color: 'var(--text-tertiary)',
         }}
       >
-        StormOps WeatherGPT &copy; 2026 — Powered by FastAPI, Open-Meteo &amp; Geocoding Service
+        WeatherGPT &copy; 2026 — Built on StormOps Meteorological Architecture
       </footer>
     </div>
   );

@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, Star, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-export const ThemeToggle: React.FC = () => {
+export interface ThemeToggleProps {
+  direction?: 'up' | 'down';
+}
+
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({ direction = 'down' }) => {
   const { theme, darkVariant, setTheme, setDarkVariant } = useTheme();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,7 +62,7 @@ export const ThemeToggle: React.FC = () => {
         }}
       >
         <ActiveIcon className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-        <span className="hidden lg:inline" style={{ color: 'var(--text-secondary)' }}>
+        <span className="inline" style={{ color: 'var(--text-secondary)' }}>
           {activeLabel}
         </span>
       </button>
@@ -68,7 +72,7 @@ export const ThemeToggle: React.FC = () => {
         <div
           role="listbox"
           aria-label="Select theme"
-          className="absolute right-0 top-full mt-1.5 z-50 rounded-xl border shadow-2xl min-w-[175px] overflow-hidden p-1 space-y-1"
+          className={`absolute right-0 ${direction === 'up' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} z-50 rounded-xl border shadow-2xl min-w-[175px] overflow-hidden p-1 space-y-1`}
           style={{
             backgroundColor: 'var(--surface)',
             borderColor: 'var(--border)',

@@ -17,6 +17,7 @@ import { SavedLocations } from './SavedLocations';
 import { EnvironmentalOutlook } from './EnvironmentalOutlook';
 import { SavedLocationItem, EnvironmentalOutlookItem } from '../../types/auth';
 import { fetchEnvironmentalOutlook } from '../../services/auth';
+import { ThemeToggle } from '../ThemeToggle';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -124,7 +125,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className="flex items-center gap-2">
             <Compass className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-            <span className="text-sm font-semibold tracking-tight">StormOps</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold tracking-tight">StormOps</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Platform
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -331,6 +337,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
             />
           )}
+        </div>
+
+        {/* Appearance / Theme Selection */}
+        <div
+          className="px-4 py-2.5 border-t flex items-center justify-between"
+          style={{
+            borderColor: 'var(--border-muted)',
+            backgroundColor: 'var(--surface)',
+          }}
+        >
+          <span
+            className="text-xs font-mono uppercase tracking-wider font-medium"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Appearance
+          </span>
+          <ThemeToggle direction="up" />
         </div>
 
         {/* User footer */}

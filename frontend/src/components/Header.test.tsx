@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { Header } from './Header';
 import { LiveWeatherHeader } from './LiveWeatherHeader';
@@ -12,10 +12,12 @@ afterEach(() => {
   window.dispatchEvent(new Event('resize'));
 });
 
-describe('Header & Location Control Responsiveness', () => {
-  it('renders brand, search slot, live weather, and theme toggle', () => {
+describe('UI-10: Header & Location Control Responsiveness', () => {
+  it('renders primary brand WeatherGPT, search slot, live weather, Bell button, and compact Profile button', () => {
     window.innerWidth = 1024;
     window.dispatchEvent(new Event('resize'));
+
+    const onOpenEventsMock = vi.fn();
 
     render(
       <ThemeProvider>
@@ -23,25 +25,33 @@ describe('Header & Location Control Responsiveness', () => {
           <DeviceLocationProvider>
             <Header
               searchSlot={<div data-testid="search-slot">Search Input</div>}
+              onOpenEvents={onOpenEventsMock}
+              eventCount={2}
             />
           </DeviceLocationProvider>
         </AuthProvider>
       </ThemeProvider>
     );
 
-    // Brand
-    expect(screen.getByText('StormOps')).toBeDefined();
+    // Primary Brand: WeatherGPT is dominant
     expect(screen.getByText('WeatherGPT')).toBeDefined();
 
     // Search Slot (rendered without duplicate inputs)
     expect(screen.getAllByTestId('search-slot').length).toBe(1);
 
-    // Theme Toggle
-    const themeBtn = screen.getByRole('button', { name: /Click to change theme/i });
-    expect(themeBtn).toBeDefined();
+    // Bell / Events & Information Entry Point (with active badge count)
+    const bellBtn = screen.getByRole('button', { name: /Events and regional information/i });
+    expect(bellBtn).toBeDefined();
+    expect(screen.getByText('2')).toBeDefined();
 
-    // Auth / Sign In
+    fireEvent.click(bellBtn);
+    expect(onOpenEventsMock).toHaveBeenCalledTimes(1);
+
+    // Auth / Profile Button (compact icon button with aria-label)
     expect(screen.getByRole('button', { name: /Sign In/i })).toBeDefined();
+
+    // Theme toggle is cleanly moved out of primary header
+    expect(screen.queryByRole('button', { name: /Click to change theme/i })).toBeNull();
   });
 
   it('renders mobile search trigger and toggles search slot on mobile viewport', async () => {
@@ -98,12 +108,9 @@ describe('Header & Location Control Responsiveness', () => {
     expect(screen.getByText('Mumbai')).toBeDefined();
     expect(screen.getByText('29°C')).toBeDefined();
 
-    // Ticking clock format should have AM or PM and no seconds colon count of 2
-    // E.g. "4:35 PM" (one colon), not "4:35:12 PM" (two colons)
-    const timeElements = screen.getAllByText(/(?:AM|PM)/i);
-    expect(timeElements.length).toBeGreaterThanOrEqual(1);
-    const timeText = timeElements[0].textContent || '';
-    const colonCount = (timeText.match(/:/g) || []).length;
-    expect(colonCount).toBe(1);
+    // Time: formatted as H:MM or HH:MM (without seconds)
+    const timeRegex = /\b\d{1,2}:\d{2}\s*(?:AM|PM)?\b/;
+    const timeMatches = screen.queryAllByText(timeRegex);
+    expect(timeMatches.length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Menu, User as UserIcon, Search, X } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
+import { Compass, Menu, User as UserIcon, Search, X, Bell } from 'lucide-react';
 import { LiveWeatherHeader } from './LiveWeatherHeader';
 import { useAuth } from '../context/AuthContext';
 import { useDeviceLocation } from '../context/DeviceLocationContext';
@@ -9,6 +8,9 @@ export interface HeaderProps {
   onReset?: () => void;
   onOpenSidebar?: () => void;
   onOpenAuthModal?: (mode: 'login' | 'register') => void;
+  onOpenEvents?: () => void;
+  eventCount?: number;
+  isEventsOpen?: boolean;
   searchSlot?: React.ReactNode;
 }
 
@@ -36,6 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
   onReset,
   onOpenSidebar,
   onOpenAuthModal,
+  onOpenEvents,
+  eventCount,
+  isEventsOpen,
   searchSlot,
 }) => {
   const { user, isAuthenticated } = useAuth();
@@ -98,16 +103,10 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Compass className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
             </div>
-            <div>
+            <div className="flex items-center">
               <span
-                className="text-base font-medium tracking-tight"
+                className="text-base sm:text-lg font-semibold tracking-tight"
                 style={{ color: 'var(--text-primary)' }}
-              >
-                StormOps
-              </span>
-              <span
-                className="text-xs ml-2 font-mono uppercase tracking-wider hidden sm:inline"
-                style={{ color: 'var(--text-tertiary)' }}
               >
                 WeatherGPT
               </span>
@@ -122,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Right side: persistent live weather/time header + theme switcher + Auth/Avatar + Mobile Search Toggle */}
+        {/* Right side: persistent live weather/time header + Bell + Auth/Avatar + Mobile Search Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Mobile search trigger affordance (only when searchSlot exists and viewport is mobile) */}
           {searchSlot && isMobile && (
@@ -131,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setIsMobileSearchOpen((prev) => !prev)}
               aria-expanded={isMobileSearchOpen}
               aria-label={isMobileSearchOpen ? 'Close search' : 'Search location or weather'}
-              className="p-2 rounded-xl border transition-colors cursor-pointer flex items-center justify-center"
+              className="p-2 rounded-xl border transition-colors cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
               style={{
                 backgroundColor: isMobileSearchOpen ? 'var(--surface-elevated)' : 'transparent',
                 borderColor: isMobileSearchOpen ? 'var(--border-strong)' : 'var(--border-subtle)',
@@ -148,14 +147,43 @@ export const Header: React.FC<HeaderProps> = ({
             isLocating={isLocating}
             onRequestLocation={requestDeviceLocation}
           />
-          <ThemeToggle />
 
+          {/* Bell / Events & Information Entry Point */}
+          <button
+            type="button"
+            onClick={onOpenEvents}
+            aria-expanded={isEventsOpen}
+            aria-label={eventCount && eventCount > 0 ? `Events and regional information (${eventCount} active)` : 'Events and regional information'}
+            title="Events & Information"
+            className="w-8 h-8 rounded-full border transition-colors cursor-pointer flex items-center justify-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            style={{
+              backgroundColor: isEventsOpen ? 'var(--surface-elevated)' : 'transparent',
+              borderColor: isEventsOpen ? 'var(--border-strong)' : 'var(--border-subtle)',
+              color: isEventsOpen ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            }}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {eventCount !== undefined && eventCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-mono font-bold flex items-center justify-center"
+                style={{
+                  backgroundColor: 'var(--accent-primary)',
+                  color: '#ffffff',
+                }}
+              >
+                {eventCount}
+              </span>
+            )}
+          </button>
+
+          {/* Account Profile / Sign In Affordance */}
           {isAuthenticated && user ? (
             <button
               type="button"
               onClick={onOpenSidebar}
               title={`${user.display_name} (${user.email})`}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold uppercase cursor-pointer transition-transform hover:scale-105 border"
+              aria-label={`Account: ${user.display_name}`}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold uppercase cursor-pointer transition-transform hover:scale-105 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
               style={{
                 backgroundColor: 'var(--accent-primary)',
                 color: '#ffffff',
@@ -169,7 +197,8 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={() => onOpenAuthModal?.('login')}
               aria-label="Sign In"
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border transition-all hover:opacity-80 cursor-pointer flex items-center space-x-1.5"
+              title="Sign In / Account"
+              className="w-8 h-8 rounded-full border transition-all hover:opacity-80 cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
               style={{
                 backgroundColor: 'var(--surface-elevated)',
                 borderColor: 'var(--border-subtle)',
@@ -177,7 +206,6 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <UserIcon className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
-              <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
         </div>

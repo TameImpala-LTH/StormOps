@@ -2,7 +2,6 @@ import React from 'react';
 import { MapPin, Star } from 'lucide-react';
 import { GeocodedLocationSchema, ComparisonResponse, EnvironmentalEvent } from '../../types/weather';
 import { OfficialAdvisory } from '../../types/advisory';
-import { EnvironmentalEventIndicator } from '../EnvironmentalEventIndicator';
 
 interface WeatherLocationIdentityProps {
   location?: GeocodedLocationSchema | null;
@@ -54,17 +53,12 @@ export const WeatherLocationIdentity: React.FC<WeatherLocationIdentityProps> = (
   isLocationSaved,
   isAuthenticated,
   onToggleSaveLocation,
-  environmentalEvents,
-  advisories = [],
-  isEnvPanelOpen,
-  onToggleEnvPanel,
 }) => {
   const primaryTitle = comparison
     ? `${comparison.location_a.name} vs ${comparison.location_b.name}`
     : location?.name || 'Weather Intelligence';
 
   const secondaryBreadcrumb = location && !comparison ? buildLocationBreadcrumb(location) : null;
-  const hasEnvIndicators = (environmentalEvents && environmentalEvents.length > 0) || advisories.length > 0;
 
   return (
     <div
@@ -107,16 +101,6 @@ export const WeatherLocationIdentity: React.FC<WeatherLocationIdentityProps> = (
                 }`}
               />
             </button>
-          )}
-
-          {/* Environmental indicator pill */}
-          {hasEnvIndicators && (
-            <EnvironmentalEventIndicator
-              events={environmentalEvents || []}
-              advisories={advisories}
-              isOpen={isEnvPanelOpen}
-              onToggle={onToggleEnvPanel}
-            />
           )}
         </div>
 
