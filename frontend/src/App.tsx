@@ -183,21 +183,9 @@ function AppContent() {
   const isThreadActive = restoredConversation !== null && restoredConversation.messages.length > 0;
 
   return (
-    <div
-      className="min-h-screen flex flex-col transition-colors duration-300 relative selection:bg-sky-500/30 selection:text-sky-200"
-      style={{
-        backgroundColor: 'var(--bg)',
-        color: 'var(--text-primary)',
-      }}
-    >
-      {/* Subtle background radial accent glow for night theme */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-opacity duration-700 -z-10 opacity-0 dark:opacity-0 night:opacity-100"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.04), transparent 70%)',
-        }}
-      />
+    <div className="stormops-shell transition-colors duration-300">
+      {/* Ambient atmospheric backdrop */}
+      <div className="stormops-atmospheric-backdrop" />
 
       {/* Top Header */}
       <Header
@@ -234,13 +222,13 @@ function AppContent() {
       )}
 
       {/* Main Container */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12 flex flex-col items-center">
+      <main className="stormops-container flex-1 py-8 sm:py-12 flex flex-col items-center">
         {/* Landing Hero Section (only when no query response, no restored thread, not loading, no error) */}
         {!queryResponse && !isThreadActive && !isLoading && !error && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full flex flex-col items-center text-center my-auto py-12 space-y-8"
+            className="stormops-discovery-canvas space-y-8 my-auto py-8 sm:py-12"
           >
             <div className="flex flex-col items-center space-y-3 max-w-2xl">
               {isAuthenticated && <PersonalizedGreeting />}
@@ -347,9 +335,9 @@ function AppContent() {
 
       {/* Footer */}
       <footer
-        className="w-full max-w-5xl mx-auto px-6 py-6 text-center text-xs font-mono"
+        className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-xs font-mono"
         style={{
-          borderTop: '1px solid var(--border-muted)',
+          borderTop: '1px solid var(--border-subtle)',
           color: 'var(--text-tertiary)',
         }}
       >

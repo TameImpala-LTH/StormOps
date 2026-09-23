@@ -24,11 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   const displayTemperature = deviceTemperature;
 
   return (
-    <header
-      className="w-full relative"
-      style={{ borderBottom: '1px solid var(--border-header)' }}
-    >
-      <div className="w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
+    <header className="stormops-header transition-colors">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4">
         {/* Brand & Drawer Toggle */}
       <div className="flex items-center space-x-3">
         {onOpenSidebar && (
