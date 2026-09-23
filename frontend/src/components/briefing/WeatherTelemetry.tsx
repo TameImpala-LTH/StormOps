@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloudRain, Wind, Droplets, Activity } from 'lucide-react';
+import { CloudRain, Wind, Droplets, Activity, Clock, RotateCcw } from 'lucide-react';
 import { OfficialAdvisory } from '../../types/advisory';
 import { getWeatherIcon } from '../../utils/weatherIcons';
 
@@ -19,6 +19,8 @@ interface WeatherTelemetryData {
 interface WeatherTelemetryProps {
   weather: WeatherTelemetryData;
   advisories?: OfficialAdvisory[];
+  inspectedTime?: string | null;
+  onResetToCurrent?: () => void;
 }
 
 // Extract AQI details from official advisories if present
@@ -66,6 +68,8 @@ function extractAqiFromAdvisories(advisories?: OfficialAdvisory[]): {
 export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
   weather,
   advisories,
+  inspectedTime,
+  onResetToCurrent,
 }) => {
   const prob = weather.precipitation_probability ?? 0;
   const peakText = weather.peak_hour
@@ -101,6 +105,31 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
         borderColor: 'var(--border-subtle)',
       }}
     >
+      {/* Inspected Hour Status Banner */}
+      {inspectedTime && (
+        <div
+          className="flex items-center justify-between pb-2.5 mb-3 border-b"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <Clock className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
+            <span style={{ color: 'var(--accent-primary)' }} className="font-semibold uppercase tracking-wider">
+              Previewing Forecast: {inspectedTime}
+            </span>
+          </div>
+          {onResetToCurrent && (
+            <button
+              type="button"
+              onClick={onResetToCurrent}
+              className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-2 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-primary)] transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Back to Current</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 divide-y sm:divide-y-0 divide-[var(--border-subtle)] sm:divide-x">
         {/* 1. Temperature & Feels Like (Visually connected) */}
         <div className="flex items-center gap-3.5 pr-2">

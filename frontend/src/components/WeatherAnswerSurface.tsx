@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Info,
@@ -12,7 +12,7 @@ import {
   AlertCircle,
   AlertTriangle,
 } from 'lucide-react';
-import { QueryResponse } from '../types/weather';
+import { QueryResponse, HourlyForecast } from '../types/weather';
 import { OfficialAdvisory } from '../types/advisory';
 import { fetchOfficialAdvisories } from '../services/weather';
 import { PRESET_LOCATIONS } from '../utils/locations';
@@ -432,6 +432,44 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
     period_label: 'current',
   };
 
+  // UI-06: Interactive inspection hour state driven by forecast scrubber
+  const [inspectedHour, setInspectedHour] = useState<HourlyForecast | null>(null);
+
+  const handleInspectHour = useCallback((hour: HourlyForecast | null) => {
+    setInspectedHour(hour);
+  }, []);
+
+  const handleResetInspection = useCallback(() => {
+    setInspectedHour(null);
+  }, []);
+
+  const activeTelemetry = useMemo(() => {
+    if (!inspectedHour) return weather;
+    return {
+      temperature: inspectedHour.temperature,
+      feels_like: inspectedHour.feels_like ?? inspectedHour.temperature,
+      condition: inspectedHour.condition,
+      weather_code: inspectedHour.weather_code,
+      humidity: weather.humidity,
+      wind_speed: inspectedHour.wind_speed,
+      precipitation: inspectedHour.precipitation,
+      precipitation_probability: inspectedHour.precipitation_probability,
+      peak_hour: weather.peak_hour,
+      rain_duration_hours: weather.rain_duration_hours,
+    };
+  }, [inspectedHour, weather]);
+
+  const inspectedTimeStr = useMemo(() => {
+    if (!inspectedHour) return null;
+    const t = inspectedHour.time;
+    const timePart = t.includes('T') ? t.split('T')[1].slice(0, 5) : t.slice(0, 5);
+    const [hStr, mStr] = timePart.split(':');
+    const h = parseInt(hStr, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${mStr ?? '00'} ${ampm}`;
+  }, [inspectedHour]);
+
   const keyInsight = response.key_insight || generateDeterministicKeyInsight(
     isPeriodUnavailable ? null : weather,
     periodTitle,
@@ -644,8 +682,10 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
       ) : !isPeriodUnavailable ? (
         <motion.div variants={itemVariants}>
           <WeatherTelemetry
-            weather={weather}
+            weather={activeTelemetry}
             advisories={advisories}
+            inspectedTime={inspectedTimeStr}
+            onResetToCurrent={handleResetInspection}
           />
         </motion.div>
       ) : null}
@@ -668,6 +708,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
               items={forecastItems}
               periodTitle={periodTitle}
               timezone={location?.timezone ?? null}
+              onInspectHour={handleInspectHour}
             />
           </React.Suspense>
         </motion.div>
