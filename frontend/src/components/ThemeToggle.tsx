@@ -58,7 +58,7 @@ export const ThemeToggle: React.FC = () => {
         }}
       >
         <ActiveIcon className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-        <span className="hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>
+        <span className="hidden lg:inline" style={{ color: 'var(--text-secondary)' }}>
           {activeLabel}
         </span>
       </button>

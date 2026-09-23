@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="stormops-header transition-colors">
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand & Drawer Toggle */}
         <div className="flex items-center space-x-2.5 sm:space-x-3 shrink-0">
           {onOpenSidebar && (
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
                 StormOps
               </span>
               <span
-                className="text-xs ml-2 font-mono uppercase tracking-wider"
+                className="text-xs ml-2 font-mono uppercase tracking-wider hidden sm:inline"
                 style={{ color: 'var(--text-tertiary)' }}
               >
                 WeatherGPT
@@ -78,13 +78,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center Docked Search Slot (Desktop & Tablet) */}
         {searchSlot && (
-          <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-6 min-w-0">
+          <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-4 min-w-[180px]">
             {searchSlot}
           </div>
         )}
 
         {/* Right side: persistent live weather/time header + theme switcher + Auth/Avatar */}
-        <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <LiveWeatherHeader
             location={displayLocation}
             temperature={displayTemperature}

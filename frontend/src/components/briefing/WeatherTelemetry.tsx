@@ -3,7 +3,7 @@ import { CloudRain, Wind, Droplets, Activity, Clock, RotateCcw } from 'lucide-re
 import { OfficialAdvisory } from '../../types/advisory';
 import { getWeatherIcon } from '../../utils/weatherIcons';
 
-interface WeatherTelemetryData {
+export interface WeatherTelemetryData {
   temperature: number;
   feels_like: number;
   condition: string;
@@ -16,7 +16,7 @@ interface WeatherTelemetryData {
   peak_hour?: string | null;
 }
 
-interface WeatherTelemetryProps {
+export interface WeatherTelemetryProps {
   weather: WeatherTelemetryData;
   advisories?: OfficialAdvisory[];
   inspectedTime?: string | null;
@@ -96,10 +96,15 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
 
   const aqi = extractAqiFromAdvisories(advisories);
 
+  // Dynamic grid column class: 4 equal columns when no AQI, 5 when AQI exists
+  const gridLayoutClass = aqi
+    ? 'grid-cols-2 sm:grid-cols-5'
+    : 'grid-cols-2 sm:grid-cols-4';
+
   return (
     <section
       aria-label="Core weather telemetry"
-      className="w-full rounded-2xl px-5 py-4 border transition-colors"
+      className="w-full rounded-2xl px-4 sm:px-5 py-4 border transition-colors"
       style={{
         backgroundColor: 'var(--surface-secondary)',
         borderColor: 'var(--border-subtle)',
@@ -130,9 +135,12 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 divide-y sm:divide-y-0 divide-[var(--border-subtle)] sm:divide-x">
-        {/* 1. Temperature & Feels Like (Visually connected) */}
-        <div className="flex items-center gap-3.5 pr-2">
+      <div
+        data-testid="telemetry-grid"
+        className={`grid ${gridLayoutClass} gap-y-3 sm:gap-y-0 sm:divide-x sm:divide-[var(--border-subtle)]`}
+      >
+        {/* 1. Temperature & Feels Like */}
+        <div className="flex items-center gap-3 sm:pr-3 min-w-0">
           <div
             className="p-2.5 rounded-xl flex-shrink-0"
             style={{
@@ -143,7 +151,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
           >
             {getWeatherIcon(weather.weather_code)}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-baseline gap-1">
               <span
                 className="font-tabular text-2xl sm:text-3xl font-light tracking-tight"
@@ -155,14 +163,14 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
                 C
               </span>
             </div>
-            <div className="type-meta text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="type-meta text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
               Feels {Math.round(weather.feels_like)}°C
             </div>
           </div>
         </div>
 
         {/* 2. Precipitation (Probability + Peak / Quantity) */}
-        <div className="flex items-center gap-3 pl-0 sm:pl-4 pt-3 sm:pt-0">
+        <div className="flex items-center gap-3 pl-0 sm:pl-3 lg:pl-4 min-w-0">
           <div
             className="p-2 rounded-lg flex-shrink-0"
             style={{
@@ -186,7 +194,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
         </div>
 
         {/* 3. Wind */}
-        <div className="flex items-center gap-3 pl-0 sm:pl-4 pt-3 sm:pt-0">
+        <div className="flex items-center gap-3 pl-0 sm:pl-3 lg:pl-4 min-w-0">
           <div
             className="p-2 rounded-lg flex-shrink-0"
             style={{
@@ -200,7 +208,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
             <div className="type-label" style={{ color: 'var(--text-tertiary)' }}>
               Wind
             </div>
-            <div className="font-tabular text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
+            <div className="font-tabular text-base sm:text-lg font-medium truncate" style={{ color: 'var(--text-primary)' }}>
               {weather.wind_speed} <span className="text-xs font-normal">km/h</span>
             </div>
             <div className="type-meta text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
@@ -210,7 +218,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
         </div>
 
         {/* 4. Humidity */}
-        <div className="flex items-center gap-3 pl-0 sm:pl-4 pt-3 sm:pt-0">
+        <div className="flex items-center gap-3 pl-0 sm:pl-3 lg:pl-4 min-w-0">
           <div
             className="p-2 rounded-lg flex-shrink-0"
             style={{
@@ -233,9 +241,9 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
           </div>
         </div>
 
-        {/* 5. Air Quality (Only rendered when real data exists) */}
+        {/* 5. Air Quality (Rendered only when real data exists) */}
         {aqi && (
-          <div className="flex items-center gap-3 pl-0 sm:pl-4 pt-3 sm:pt-0 col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-3 pl-0 sm:pl-3 lg:pl-4 min-w-0 col-span-2 sm:col-span-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-subtle)]">
             <div
               className="p-2 rounded-lg flex-shrink-0"
               style={{
@@ -250,7 +258,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
                 Air Quality
               </div>
               <div
-                className="font-tabular text-base sm:text-lg font-medium"
+                className="font-tabular text-base sm:text-lg font-medium truncate"
                 style={{ color: aqi.color }}
               >
                 {aqi.value ? `AQI ${aqi.value}` : aqi.category}

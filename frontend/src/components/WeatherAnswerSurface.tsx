@@ -653,6 +653,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
           detailedSummary={deduplicatedSummary}
           condition={weather.condition}
           weatherCode={weather.weather_code}
+          weather={weather}
           decision={decision}
           isUnavailable={isPeriodUnavailable}
           periodTitle={periodTitle}

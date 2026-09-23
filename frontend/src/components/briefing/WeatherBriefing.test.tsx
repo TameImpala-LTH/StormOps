@@ -89,25 +89,58 @@ describe('Phase UI-05: Weather Briefing Components & Hierarchy Tests', () => {
   });
 
   describe('WeatherGPTHero', () => {
-    it('renders prominent synthesis headline and condition kicker', () => {
+    it('renders 3-level WeatherGPT hierarchy: headline, scannable bullets, and collapsible interpretation', () => {
       render(
         <WeatherGPTHero
           keyInsight="Heavy monsoon showers expected to intensify by evening."
           detailedSummary="Sustained rainfall with occasional thunderstorms throughout the night."
           condition="heavy rain"
           weatherCode={65}
+          weather={{
+            temperature: 28,
+            feels_like: 33,
+            condition: 'heavy rain',
+            weather_code: 65,
+            humidity: 85,
+            wind_speed: 15,
+            precipitation: 12.5,
+            precipitation_probability: 90,
+            peak_hour: '18:00',
+          }}
           periodTitle="Today"
         />
       );
 
+      // Level 1: Synthesis Headline & condition
       expect(screen.getByText(/WeatherGPT Briefing/i)).toBeDefined();
       expect(screen.getByText('heavy rain')).toBeDefined();
       expect(
         screen.getByRole('heading', { level: 2, name: /Heavy monsoon showers expected to intensify by evening/i })
       ).toBeDefined();
+
+      // Level 2: Scannable Briefing Bullets
+      expect(screen.getByText('Conditions & Comfort')).toBeDefined();
+      expect(screen.getByText(/Feels warmer than actual temperature/i)).toBeDefined();
+      expect(screen.getByText('Rain & Timing')).toBeDefined();
+      expect(screen.getByText(/High likelihood of precipitation \(90%\), peaking around 18:00/i)).toBeDefined();
+      expect(screen.getByText('Wind & Air')).toBeDefined();
+      expect(screen.getByText('Practical Advice')).toBeDefined();
+
+      // Level 3: Collapsible Detailed Interpretation (collapsed by default)
+      const toggleBtn = screen.getByRole('button', { name: /Read Detailed Interpretation/i });
+      expect(toggleBtn).toBeDefined();
+      expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+      expect(screen.queryByText(/Sustained rainfall with occasional thunderstorms/i)).toBeNull();
+
+      // Expand disclosure
+      fireEvent.click(toggleBtn);
+      expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
       expect(screen.getByText(/Sustained rainfall with occasional thunderstorms/i)).toBeDefined();
-      // No decision action pill rendered when decision is null
-      expect(screen.queryByText(/recommended/i)).toBeNull();
+
+      // Collapse disclosure
+      fireEvent.click(toggleBtn);
+      expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+      expect(screen.queryByText(/Sustained rainfall with occasional thunderstorms/i)).toBeNull();
     });
 
     it('renders action recommendation pill and real confidence only when backend decision exists', () => {
@@ -205,11 +238,15 @@ describe('Phase UI-05: Weather Briefing Components & Hierarchy Tests', () => {
       expect(screen.getByText('82%')).toBeDefined();
       expect(screen.getByText('Humid')).toBeDefined();
 
-      // AQI omitted when no AQI advisory present
+      // AQI omitted when no AQI advisory present, ensuring balanced 4-column desktop grid
       expect(screen.queryByText(/Air Quality/i)).toBeNull();
+      const grid4 = screen.getByTestId('telemetry-grid');
+      expect(grid4.className).toContain('sm:grid-cols-4');
+      expect(grid4.className).not.toContain('sm:grid-cols-5');
+      expect(grid4.className).not.toContain('lg:grid-cols-5');
     });
 
-    it('renders AQI in telemetry when official air quality advisory is present', () => {
+    it('renders AQI in telemetry when official air quality advisory is present with 5 columns', () => {
       const aqiAdvisory: OfficialAdvisory = {
         id: 'adv-cpcb-01',
         source_id: 'cpcb-dl-01',
@@ -247,6 +284,9 @@ describe('Phase UI-05: Weather Briefing Components & Hierarchy Tests', () => {
       expect(screen.getByText(/Air Quality/i)).toBeDefined();
       expect(screen.getByText('AQI 280')).toBeDefined();
       expect(screen.getByText('Poor')).toBeDefined();
+
+      const grid5 = screen.getByTestId('telemetry-grid');
+      expect(grid5.className).toContain('sm:grid-cols-5');
     });
   });
 
