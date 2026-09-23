@@ -75,31 +75,29 @@ describe('Phase UI-07: Spatial Intelligence / WeatherMap Tests', () => {
     updated_at: '2026-09-23T10:00:00Z',
   };
 
-  it('renders spatial context section header, location breadcrumbs, and compact legend', () => {
+  it('renders location map section header, concise breadcrumbs, and controls', () => {
     render(
       <ThemeProvider>
         <WeatherMap
           location={mockLocation}
           weather={mockWeather}
           periodLabel="Today"
-          advisories={[mockAdvisory]}
         />
       </ThemeProvider>
     );
 
     // Section header identity
-    expect(screen.getByText('Spatial Context')).toBeDefined();
-    expect(screen.getByText('· Evidence')).toBeDefined();
-    expect(screen.getByText(/Kolkata · West Bengal · India — Geographic orientation & official advisory coverage/i)).toBeDefined();
+    expect(screen.getByText('LOCATION MAP')).toBeDefined();
+    expect(screen.queryByText('Spatial Context')).toBeNull();
+    expect(screen.queryByText('· Evidence')).toBeNull();
+    expect(screen.getByText('Kolkata · West Bengal · India')).toBeDefined();
 
     // Controls
     expect(screen.getByRole('button', { name: /Recenter map/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Expand map fullscreen/i })).toBeDefined();
-    expect(screen.getByRole('button', { name: /Toggle official advisories/i })).toBeDefined();
 
-    // Compact Legend
-    expect(screen.getByText('Selected location')).toBeDefined();
-    expect(screen.getByText('Official advisory')).toBeDefined();
+    // Single-location mode: no redundant footer
+    expect(screen.queryByText('Selected location')).toBeNull();
   });
 
   it('toggles advisory layer on and off via the map header control', () => {
@@ -223,7 +221,8 @@ describe('Phase UI-07: Spatial Intelligence / WeatherMap Tests', () => {
     );
 
     expect(screen.getByText(/Comparison: A vs B/i)).toBeDefined();
-    expect(screen.getByText('Comparison location')).toBeDefined();
+    expect(screen.getByText('A · Kolkata')).toBeDefined();
+    expect(screen.getByText('B · Mumbai')).toBeDefined();
   });
 
   it('sanitizes potential XSS in location and condition strings', () => {
@@ -242,22 +241,22 @@ describe('Phase UI-07: Spatial Intelligence / WeatherMap Tests', () => {
   });
 
   it('calculates verified CSS tile filters for all themes', () => {
-    // Vandal: deep maroon/burgundy
+    // Vandal: restrained red cartography (Atheris-aligned with 170deg hue shift & sepia 18%)
     const vandalFilter = getTileFilter('dark', 'vandal');
     expect(vandalFilter).toContain('invert(100%)');
-    expect(vandalFilter).toContain('sepia(100%)');
-    expect(vandalFilter).toContain('hue-rotate(305deg)');
-    expect(vandalFilter).toContain('saturate(2.4)');
+    expect(vandalFilter).toContain('hue-rotate(170deg)');
+    expect(vandalFilter).toContain('sepia(18%)');
 
-    // Atheris: cool dark blue-grey
+    // Atheris: cool dark blue-grey (quality bar)
     const atherisFilter = getTileFilter('dark', 'atheris');
     expect(atherisFilter).toContain('invert(100%)');
     expect(atherisFilter).toContain('hue-rotate(185deg)');
 
-    // Midnight: cosmic purple
+    // Midnight: restrained violet cartography
     const midnightFilter = getTileFilter('night', 'atheris');
     expect(midnightFilter).toContain('invert(100%)');
-    expect(midnightFilter).toContain('hue-rotate(235deg)');
+    expect(midnightFilter).toContain('hue-rotate(200deg)');
+    expect(midnightFilter).toContain('sepia(18%)');
 
     // Light: clean natural
     expect(getTileFilter('light', 'atheris')).toBe('none');

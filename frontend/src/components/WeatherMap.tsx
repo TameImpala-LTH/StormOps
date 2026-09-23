@@ -299,10 +299,10 @@ export const TILE_ATTRIBUTION =
 export function getTileFilter(theme: string, darkVariant: string): string {
   if (theme === 'light') return 'none';
   if (theme === 'night') {
-    return 'invert(100%) sepia(85%) hue-rotate(235deg) saturate(2.0) brightness(0.60) contrast(1.30)';
+    return 'invert(100%) hue-rotate(200deg) sepia(18%) saturate(1.25) brightness(0.68) contrast(1.25)';
   }
   if (darkVariant === 'vandal') {
-    return 'invert(100%) sepia(100%) hue-rotate(305deg) saturate(2.4) brightness(0.62) contrast(1.32)';
+    return 'invert(100%) hue-rotate(170deg) sepia(18%) saturate(1.25) brightness(0.70) contrast(1.25)';
   }
   // Atheris (default dark) — cool blue-grey
   return 'invert(100%) hue-rotate(185deg) brightness(0.68) contrast(1.28) saturate(1.10)';
@@ -325,13 +325,13 @@ function applyAtmosphericOverlay(map: L.Map, effectiveTheme: string, darkVariant
 
   if (effectiveTheme === 'night') {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.12) 0%, rgba(76, 29, 149, 0.20) 60%, rgba(5, 2, 10, 0.65) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.06) 0%, rgba(76, 29, 149, 0.14) 50%, rgba(5, 2, 10, 0.60) 100%)';
   } else if (darkVariant === 'vandal') {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(225, 29, 72, 0.10) 0%, rgba(159, 18, 57, 0.20) 50%, rgba(9, 2, 4, 0.65) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(225, 29, 72, 0.06) 0%, rgba(159, 18, 57, 0.12) 50%, rgba(8, 2, 4, 0.60) 100%)';
   } else {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.22) 60%, rgba(2, 6, 12, 0.60) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.07) 0%, rgba(15, 23, 42, 0.22) 60%, rgba(2, 6, 12, 0.60) 100%)';
   }
 }
 
@@ -1067,7 +1067,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   return (
     <section
       role="region"
-      aria-label="Spatial context and geographic weather map"
+      aria-label="Location map and geographic weather view"
       data-map-theme={mapThemeKey}
       className={isExpanded
         ? 'fixed inset-0 z-[9000] flex flex-col bg-[var(--surface-primary)] p-4 sm:p-6'
@@ -1077,7 +1077,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         borderColor: 'var(--border-default)',
       }}
     >
-      {/* 1. Header: Spatial Context & Controls */}
+      {/* 1. Header: Location Map & Controls */}
       <div
         className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2 border-b"
         style={{ borderColor: 'var(--border-subtle)' }}
@@ -1085,14 +1085,11 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span
-              className="type-label flex items-center gap-1.5"
+              className="type-label flex items-center gap-1.5 font-semibold tracking-wider text-xs uppercase"
               style={{ color: 'var(--accent-primary)' }}
             >
               <Compass className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-              Spatial Context
-            </span>
-            <span className="type-meta text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              · Evidence
+              LOCATION MAP
             </span>
             {locationB && (
               <span
@@ -1111,7 +1108,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
             {location.name}
             {location.admin1 ? ` · ${location.admin1}` : ''}
             {location.country ? ` · ${location.country}` : ''}
-            {' — Geographic orientation & official advisory coverage'}
           </p>
         </div>
 
@@ -1213,39 +1209,43 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
         <div className="stormops-map-atmosphere-overlay" aria-hidden="true" />
       </div>
 
-      {/* 3. Compact Map Legend */}
-      <div className="flex items-center justify-between gap-4 text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full inline-block"
-              style={{
-                backgroundColor: accentColorA,
-                boxShadow: `0 0 6px ${accentColorA}`,
-              }}
-            />
-            <span>Selected location</span>
+      {/* 3. Compact Map Legend (Comparison Mode or Active Advisories Only) */}
+      {(locationB || (advisoriesWithGeom.length > 0 && showAdvisories)) && (
+        <div className="flex items-center justify-between gap-4 text-[11px] font-mono pt-1" style={{ color: 'var(--text-tertiary)' }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            {locationB && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full inline-block"
+                    style={{
+                      backgroundColor: accentColorA,
+                      boxShadow: `0 0 6px ${accentColorA}`,
+                    }}
+                  />
+                  <span>A · {location.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full inline-block"
+                    style={{
+                      backgroundColor: accentColorB,
+                      boxShadow: `0 0 6px ${accentColorB}`,
+                    }}
+                  />
+                  <span>B · {locationB.name}</span>
+                </div>
+              </>
+            )}
+            {advisoriesWithGeom.length > 0 && showAdvisories && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-2 rounded-xs border border-[#f43f5e] bg-[rgba(244,63,94,0.2)]" />
+                <span>Official advisory</span>
+              </div>
+            )}
           </div>
-          {locationB && (
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2.5 h-2.5 rounded-full inline-block"
-                style={{
-                  backgroundColor: accentColorB,
-                  boxShadow: `0 0 6px ${accentColorB}`,
-                }}
-              />
-              <span>Comparison location</span>
-            </div>
-          )}
-          {advisoriesWithGeom.length > 0 && showAdvisories && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-2 rounded-xs border border-[#f43f5e] bg-[rgba(244,63,94,0.2)]" />
-              <span>Official advisory</span>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </section>
   );
 };
