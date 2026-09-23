@@ -296,16 +296,16 @@ export const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 // CSS filters applied to the Leaflet tilePane per theme.
-function getTileFilter(theme: string, darkVariant: string): string {
+export function getTileFilter(theme: string, darkVariant: string): string {
   if (theme === 'light') return 'none';
   if (theme === 'night') {
-    return 'brightness(0.38) invert(1) hue-rotate(210deg) saturate(0.50) contrast(0.85) sepia(0.12)';
+    return 'invert(100%) sepia(85%) hue-rotate(235deg) saturate(2.0) brightness(0.60) contrast(1.30)';
   }
   if (darkVariant === 'vandal') {
-    return 'brightness(0.42) invert(1) hue-rotate(145deg) saturate(0.60) contrast(0.90) sepia(0.18)';
+    return 'invert(100%) sepia(100%) hue-rotate(305deg) saturate(2.4) brightness(0.62) contrast(1.32)';
   }
   // Atheris (default dark) — cool blue-grey
-  return 'brightness(0.48) invert(1) hue-rotate(180deg) saturate(0.55) contrast(0.88)';
+  return 'invert(100%) hue-rotate(185deg) brightness(0.68) contrast(1.28) saturate(1.10)';
 }
 
 // Atmospheric overlay rendered in dedicated Leaflet pane (zIndex 250).
@@ -325,17 +325,17 @@ function applyAtmosphericOverlay(map: L.Map, effectiveTheme: string, darkVariant
 
   if (effectiveTheme === 'night') {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(88, 28, 135, 0.28) 0%, rgba(49, 46, 129, 0.16) 60%, rgba(15, 23, 42, 0.35) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.12) 0%, rgba(76, 29, 149, 0.20) 60%, rgba(5, 2, 10, 0.65) 100%)';
   } else if (darkVariant === 'vandal') {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(136, 19, 55, 0.28) 0%, rgba(88, 28, 135, 0.16) 60%, rgba(15, 23, 42, 0.38) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(225, 29, 72, 0.10) 0%, rgba(159, 18, 57, 0.20) 50%, rgba(9, 2, 4, 0.65) 100%)';
   } else {
     atmoPane.style.background =
-      'radial-gradient(ellipse at 50% 50%, rgba(14, 116, 144, 0.24) 0%, rgba(30, 58, 138, 0.14) 60%, rgba(15, 23, 42, 0.32) 100%)';
+      'radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.22) 60%, rgba(2, 6, 12, 0.60) 100%)';
   }
 }
 
-function applyTileFilter(map: L.Map, theme: string, darkVariant: string) {
+export function applyTileFilter(map: L.Map, theme: string, darkVariant: string) {
   const pane = map.getPane('tilePane');
   if (pane) {
     (pane as HTMLElement).style.filter = getTileFilter(theme, darkVariant);
@@ -380,7 +380,7 @@ export function getOptimalZoom(loc: GeocodedLocationSchema): number {
   return 10;
 }
 
-// Marker icon HTML — elevated pill with colored indicator beacon and condition halo
+// Marker icon HTML — focal anchor coordinate dot + subtle rings + adjacent compact weather label
 export const createMarkerHtml = (
   locName: string,
   pw: TargetPeriodWeather,
@@ -399,59 +399,37 @@ export const createMarkerHtml = (
     : temp >= 10 ? '#34d399'
     : '#60a5fa';
   const showRainRipple = rain > 40;
-  const rippleVandalClass = rainColor === '#fb923c' ? ' stormops-rain-ripple-vandal' : '';
+  const isVandal = rainColor === '#ff2a55' || accentColor === '#ff2a55';
+  const rainPillClass = isVandal ? 'stormops-label-rain stormops-label-rain-vandal' : 'stormops-label-rain';
 
-  const pill = `
-    <div style="
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px 5px 7px;
-      border-radius: 9999px;
-      background-color: var(--surface-primary);
-      border: 1px solid var(--border-default);
-      color: var(--text-primary);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-      font-family: inherit;
-      font-size: 12px;
-      white-space: nowrap;
-      pointer-events: none;
-      user-select: none;
-    ">
-      <span style="
-        width: 7px;
-        height: 7px;
-        border-radius: 9999px;
-        background-color: ${accentColor};
-        flex-shrink: 0;
-        box-shadow: 0 0 5px ${accentColor};
-      "></span>
-      <span style="font-weight: 700; color: ${accentColor}; letter-spacing: -0.02em;">${temp}&deg;C</span>
-      <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(locName)}</span>
-      ${rain > 0 ? `
-      <span style="
-        font-family: monospace;
-        font-size: 9px;
-        padding: 1px 5px;
-        border-radius: 4px;
-        background-color: ${rainColor}1a;
-        color: ${rainColor};
-        border: 1px solid ${rainColor}38;
-      ">${rain}%</span>` : ''}
-    </div>
-  `;
-
-  if (!isFocal) return pill;
-
-  // Focal marker: wrap in beacon + halo container
   return `
     <div
       class="stormops-focal-marker"
-      style="--marker-accent: ${accentColor};"
+      style="--marker-accent: ${accentColor}; --halo-color: ${haloColor};"
     >
-      <div class="stormops-condition-halo" style="--halo-color: ${haloColor};"></div>
-      ${showRainRipple ? `<div class="stormops-rain-ripple${rippleVandalClass}"></div>` : ''}
-      ${pill}
+      <!-- Geographically Localized Condition Aura -->
+      <div class="stormops-condition-halo"></div>
+
+      <!-- Rain Ripple Animation (Rain Probability > 40%) -->
+      ${showRainRipple ? `<div class="stormops-rain-ripple${isVandal ? ' stormops-rain-ripple-vandal' : ''}"></div>` : ''}
+
+      <!-- Concentric Beacon Rings -->
+      ${isFocal ? `
+        <div class="stormops-beacon-outer"></div>
+        <div class="stormops-beacon-inner"></div>
+      ` : `
+        <div class="stormops-beacon-inner" style="opacity: 0.6;"></div>
+      `}
+
+      <!-- 1. PRIMARY FOCAL ANCHOR POINT: Exact LatLng Coordinate -->
+      <div class="stormops-focal-dot"></div>
+
+      <!-- 2. COMPACT ADJACENT WEATHER LABEL -->
+      <div class="stormops-focal-label">
+        <span class="stormops-label-temp">${temp}&deg;C</span>
+        <span class="stormops-label-place">${escapeHtml(locName)}</span>
+        ${rain > 0 ? `<span class="${rainPillClass}">${rain}%</span>` : ''}
+      </div>
     </div>
   `;
 };
@@ -587,26 +565,29 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAdvisories, setShowAdvisories] = useState(true);
 
-  // Map-specific Light / Dark mode toggle (persisted in localStorage)
+  // Map-specific Light / Dark mode toggle
   const [mapMode, setMapMode] = useState<'light' | 'dark'>(() => {
-    try {
-      const saved = localStorage.getItem('stormops_map_mode');
-      if (saved === 'light' || saved === 'dark') return saved;
-    } catch {}
     return theme === 'light' ? 'light' : 'dark';
   });
 
+  // Automatically sync mapMode when global theme changes
+  useEffect(() => {
+    setMapMode(theme === 'light' ? 'light' : 'dark');
+  }, [theme]);
+
   const toggleMapMode = useCallback(() => {
-    setMapMode((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      try {
-        localStorage.setItem('stormops_map_mode', next);
-      } catch {}
-      return next;
-    });
+    setMapMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
   const effectiveTheme = mapMode === 'light' ? 'light' : (theme === 'light' ? 'dark' : theme);
+
+  const mapThemeKey = useMemo<'vandal' | 'atheris' | 'midnight' | 'light'>(() => {
+    if (mapMode === 'light') return 'light';
+    if (theme === 'light') return 'light';
+    if (theme === 'night') return 'midnight';
+    if (darkVariant === 'vandal') return 'vandal';
+    return 'atheris';
+  }, [theme, darkVariant, mapMode]);
 
   // Filter advisories that have valid geometry AND are not expired
   const advisoriesWithGeom = useMemo(() => {
@@ -624,7 +605,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   const accentColorB =
     theme === 'night' ? '#38bdf8' : theme === 'light' ? '#0284c7' : darkVariant === 'vandal' ? '#fb923c' : '#a78bfa';
 
-  const rainColorA = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
+  const rainColorA = darkVariant === 'vandal' ? '#ff2a55' : '#38bdf8';
   const rainColorB = darkVariant === 'vandal' ? '#fb923c' : '#38bdf8';
 
   // Hover preview
@@ -1087,6 +1068,7 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
     <section
       role="region"
       aria-label="Spatial context and geographic weather map"
+      data-map-theme={mapThemeKey}
       className={isExpanded
         ? 'fixed inset-0 z-[9000] flex flex-col bg-[var(--surface-primary)] p-4 sm:p-6'
         : 'w-full rounded-2xl p-5 sm:p-6 border space-y-4 transition-colors'}
@@ -1221,24 +1203,38 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
       {/* 2. Map Canvas Container */}
       <div
         ref={mapWrapperRef}
-        className={`w-full rounded-2xl overflow-hidden relative shadow-sm transition-all ${
+        data-map-theme={mapThemeKey}
+        className={`stormops-map-canvas w-full rounded-2xl overflow-hidden relative shadow-sm transition-all ${
           isExpanded ? 'flex-1' : 'h-[320px] sm:h-[380px] lg:h-[420px]'
         }`}
         style={{ border: '1px solid var(--border-default)' }}
       >
         <div ref={mapContainerRef} className="w-full h-full z-0" />
+        <div className="stormops-map-atmosphere-overlay" aria-hidden="true" />
       </div>
 
       {/* 3. Compact Map Legend */}
       <div className="flex items-center justify-between gap-4 text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColorA }} />
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block"
+              style={{
+                backgroundColor: accentColorA,
+                boxShadow: `0 0 6px ${accentColorA}`,
+              }}
+            />
             <span>Selected location</span>
           </div>
           {locationB && (
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColorB }} />
+              <span
+                className="w-2.5 h-2.5 rounded-full inline-block"
+                style={{
+                  backgroundColor: accentColorB,
+                  boxShadow: `0 0 6px ${accentColorB}`,
+                }}
+              />
               <span>Comparison location</span>
             </div>
           )}
@@ -1249,10 +1245,6 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
             </div>
           )}
         </div>
-
-        <p className="hidden md:inline text-[11px]">
-          Click anywhere on the map to explore weather coordinates
-        </p>
       </div>
     </section>
   );

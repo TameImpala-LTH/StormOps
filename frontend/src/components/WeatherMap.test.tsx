@@ -5,6 +5,7 @@ import {
   createMarkerHtml,
   createPopupHtml,
   getOptimalZoom,
+  getTileFilter,
 } from './WeatherMap';
 import { GeocodedLocationSchema, TargetPeriodWeather } from '../types/weather';
 import { OfficialAdvisory } from '../types/advisory';
@@ -238,5 +239,64 @@ describe('Phase UI-07: Spatial Intelligence / WeatherMap Tests', () => {
     expect(popup).not.toContain('<script>');
     expect(popup).toContain('&lt;script&gt;');
     expect(popup).not.toContain('<img src=x');
+  });
+
+  it('calculates verified CSS tile filters for all themes', () => {
+    // Vandal: deep maroon/burgundy
+    const vandalFilter = getTileFilter('dark', 'vandal');
+    expect(vandalFilter).toContain('invert(100%)');
+    expect(vandalFilter).toContain('sepia(100%)');
+    expect(vandalFilter).toContain('hue-rotate(305deg)');
+    expect(vandalFilter).toContain('saturate(2.4)');
+
+    // Atheris: cool dark blue-grey
+    const atherisFilter = getTileFilter('dark', 'atheris');
+    expect(atherisFilter).toContain('invert(100%)');
+    expect(atherisFilter).toContain('hue-rotate(185deg)');
+
+    // Midnight: cosmic purple
+    const midnightFilter = getTileFilter('night', 'atheris');
+    expect(midnightFilter).toContain('invert(100%)');
+    expect(midnightFilter).toContain('hue-rotate(235deg)');
+
+    // Light: clean natural
+    expect(getTileFilter('light', 'atheris')).toBe('none');
+  });
+
+  it('generates redesigned focal marker hierarchy with central anchor dot and adjacent compact label', () => {
+    const markerHtml = createMarkerHtml('Kolkata', mockWeather, '#ff2a55', '#ff2a55', true);
+    // 1. Primary Focal Anchor Point
+    expect(markerHtml).toContain('stormops-focal-dot');
+    expect(markerHtml).toContain('stormops-beacon-outer');
+    expect(markerHtml).toContain('stormops-beacon-inner');
+    expect(markerHtml).toContain('stormops-condition-halo');
+
+    // 2. Compact Adjacent Weather Label
+    expect(markerHtml).toContain('stormops-focal-label');
+    expect(markerHtml).toContain('stormops-label-temp');
+    expect(markerHtml).toContain('28&deg;C');
+    expect(markerHtml).toContain('stormops-label-place');
+    expect(markerHtml).toContain('Kolkata');
+    expect(markerHtml).toContain('stormops-label-rain');
+    expect(markerHtml).toContain('75%');
+  });
+
+  it('attaches data-map-theme attribute to canvas container matching active theme', () => {
+    const { container } = render(
+      <ThemeProvider>
+        <WeatherMap
+          location={mockLocation}
+          weather={mockWeather}
+          periodLabel="Today"
+        />
+      </ThemeProvider>
+    );
+
+    const canvas = container.querySelector('.stormops-map-canvas');
+    expect(canvas).toBeDefined();
+    expect(canvas?.getAttribute('data-map-theme')).toBe('atheris');
+
+    const overlay = container.querySelector('.stormops-map-atmosphere-overlay');
+    expect(overlay).toBeDefined();
   });
 });
