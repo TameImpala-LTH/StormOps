@@ -1,13 +1,22 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { Header } from './Header';
 import { LiveWeatherHeader } from './LiveWeatherHeader';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { DeviceLocationProvider } from '../context/DeviceLocationContext';
 
+afterEach(() => {
+  cleanup();
+  window.innerWidth = 1024;
+  window.dispatchEvent(new Event('resize'));
+});
+
 describe('Header & Location Control Responsiveness', () => {
   it('renders brand, search slot, live weather, and theme toggle', () => {
+    window.innerWidth = 1024;
+    window.dispatchEvent(new Event('resize'));
+
     render(
       <ThemeProvider>
         <AuthProvider>
@@ -24,8 +33,8 @@ describe('Header & Location Control Responsiveness', () => {
     expect(screen.getByText('StormOps')).toBeDefined();
     expect(screen.getByText('WeatherGPT')).toBeDefined();
 
-    // Search Slot (rendered in desktop bar and mobile docked area)
-    expect(screen.getAllByTestId('search-slot').length).toBe(2);
+    // Search Slot (rendered without duplicate inputs)
+    expect(screen.getAllByTestId('search-slot').length).toBe(1);
 
     // Theme Toggle
     const themeBtn = screen.getByRole('button', { name: /Click to change theme/i });
@@ -33,6 +42,39 @@ describe('Header & Location Control Responsiveness', () => {
 
     // Auth / Sign In
     expect(screen.getByRole('button', { name: /Sign In/i })).toBeDefined();
+  });
+
+  it('renders mobile search trigger and toggles search slot on mobile viewport', async () => {
+    // Simulate mobile viewport width
+    window.innerWidth = 390;
+    window.dispatchEvent(new Event('resize'));
+
+    const { unmount } = render(
+      <ThemeProvider>
+        <AuthProvider>
+          <DeviceLocationProvider>
+            <Header
+              searchSlot={<div data-testid="search-slot">Search Input</div>}
+            />
+          </DeviceLocationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+
+    // On mobile initially closed: search slot is not rendered, but mobile search button is visible
+    const searchToggleBtn = screen.getByRole('button', { name: /Search location or weather/i });
+    expect(searchToggleBtn).toBeDefined();
+    expect(screen.queryByTestId('search-slot')).toBeNull();
+
+    // Click to expand mobile search
+    fireEvent.click(searchToggleBtn);
+    expect(screen.getByTestId('search-slot')).toBeDefined();
+    expect(screen.getByRole('button', { name: /Close search/i })).toBeDefined();
+
+    // Cleanup resize
+    window.innerWidth = 1024;
+    window.dispatchEvent(new Event('resize'));
+    unmount();
   });
 
   it('renders LiveWeatherHeader with time formatted without seconds', () => {

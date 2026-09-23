@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloudRain, Wind, Droplets, Activity, Clock, RotateCcw } from 'lucide-react';
+import { CloudRain, Wind, Droplets, Activity, RotateCcw } from 'lucide-react';
 import { OfficialAdvisory } from '../../types/advisory';
 import { getWeatherIcon } from '../../utils/weatherIcons';
 
@@ -96,6 +96,12 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
 
   const aqi = extractAqiFromAdvisories(advisories);
 
+  const tempDiff = Math.round(weather.feels_like) - Math.round(weather.temperature);
+  const feelsText =
+    tempDiff === 0
+      ? `Feels ${Math.round(weather.feels_like)}°C`
+      : `Feels ${Math.round(weather.feels_like)}°C (${tempDiff > 0 ? `+${tempDiff}` : tempDiff}°)`;
+
   // Dynamic grid column class: 4 equal columns when no AQI (25% each), 5 when AQI exists (20% each)
   const gridLayoutClass = aqi
     ? 'grid-cols-2 sm:grid-cols-5'
@@ -110,25 +116,30 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
         borderColor: 'var(--border-subtle)',
       }}
     >
-      {/* Inspected Hour Status Banner */}
+      {/* Subtle Inspected Forecast Hour State Indicator */}
       {inspectedTime && (
         <div
-          className="flex items-center justify-between pb-2.5 mb-3 border-b"
+          data-testid="forecast-scrubbing-indicator"
+          className="flex items-center justify-between pb-2 mb-2.5 border-b"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <Clock className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
-            <span style={{ color: 'var(--accent-primary)' }} className="font-semibold uppercase tracking-wider">
-              Previewing Forecast: {inspectedTime}
+          <div className="flex items-center gap-1.5 text-[11px] font-mono tracking-wider">
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: 'var(--accent-primary)' }}
+            />
+            <span style={{ color: 'var(--accent-primary)' }} className="font-semibold uppercase">
+              FORECAST · {inspectedTime}
             </span>
           </div>
           {onResetToCurrent && (
             <button
               type="button"
               onClick={onResetToCurrent}
-              className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-2 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-primary)] transition-colors"
+              aria-label="Return telemetry to current observation"
+              className="inline-flex items-center gap-1 text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-1.5 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-primary)] transition-colors"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-2.5 h-2.5" />
               <span>Back to Current</span>
             </button>
           )}
@@ -171,7 +182,7 @@ export const WeatherTelemetry: React.FC<WeatherTelemetryProps> = ({
                 </span>
               </div>
               <div className="type-meta text-[11px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Feels {Math.round(weather.feels_like)}°C
+                {feelsText}
               </div>
             </div>
           </div>

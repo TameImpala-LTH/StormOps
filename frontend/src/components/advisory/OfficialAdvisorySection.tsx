@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, Wind, Clock } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, Wind, Clock, ExternalLink } from 'lucide-react';
 import { OfficialAdvisory, getAdvisoryTemporalState } from '../../types/advisory';
 import { OfficialAdvisoryCard } from './OfficialAdvisoryCard';
 import { AirQualityCard } from './AirQualityCard';
@@ -177,29 +177,45 @@ export const OfficialAdvisorySection: React.FC<OfficialAdvisorySectionProps> = (
                           </div>
                         </div>
 
-                        {isPromoted ? (
-                          <span
-                            className="self-start sm:self-auto text-[10px] font-mono px-2 py-0.5 rounded border whitespace-nowrap"
-                            style={{
-                              backgroundColor: 'rgba(244,63,94,0.08)',
-                              borderColor: 'rgba(244,63,94,0.25)',
-                              color: '#f43f5e',
-                            }}
-                          >
-                            Surfaced in alert banner ↑
-                          </span>
-                        ) : (
-                          <span
-                            className="self-start sm:self-auto text-[10px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap"
-                            style={{
-                              backgroundColor: 'rgba(16,185,129,0.10)',
-                              borderColor: 'rgba(16,185,129,0.25)',
-                              color: '#10b981',
-                            }}
-                          >
-                            ACTIVE NOW
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                          {adv.source_url && (
+                            <a
+                              href={adv.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Open official source bulletin from ${adv.authority} in a new tab`}
+                              className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent-primary)] hover:underline cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="hidden sm:inline">Official Source</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+
+                          {isPromoted ? (
+                            <span
+                              className="text-[10px] font-mono px-2 py-0.5 rounded border whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'rgba(244,63,94,0.08)',
+                                borderColor: 'rgba(244,63,94,0.25)',
+                                color: '#f43f5e',
+                              }}
+                            >
+                              Surfaced in alert banner ↑
+                            </span>
+                          ) : (
+                            <span
+                              className="text-[10px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'rgba(16,185,129,0.10)',
+                                borderColor: 'rgba(16,185,129,0.25)',
+                                color: '#10b981',
+                              }}
+                            >
+                              ACTIVE NOW
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -255,16 +271,32 @@ export const OfficialAdvisorySection: React.FC<OfficialAdvisorySectionProps> = (
                         </div>
                       </div>
 
-                      <span
-                        className="self-start sm:self-auto text-[10px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap"
-                        style={{
-                          backgroundColor: 'rgba(234,179,8,0.10)',
-                          borderColor: 'rgba(234,179,8,0.25)',
-                          color: '#eab308',
-                        }}
-                      >
-                        UPCOMING
-                      </span>
+                      <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                        {adv.source_url && (
+                          <a
+                            href={adv.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open official source bulletin from ${adv.authority} in a new tab`}
+                            className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent-primary)] hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="hidden sm:inline">Official Source</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+
+                        <span
+                          className="text-[10px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap"
+                          style={{
+                            backgroundColor: 'rgba(234,179,8,0.10)',
+                            borderColor: 'rgba(234,179,8,0.25)',
+                            color: '#eab308',
+                          }}
+                        >
+                          UPCOMING
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

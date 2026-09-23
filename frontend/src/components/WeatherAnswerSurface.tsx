@@ -462,12 +462,7 @@ export const WeatherAnswerSurface: React.FC<WeatherAnswerSurfaceProps> = ({
   const inspectedTimeStr = useMemo(() => {
     if (!inspectedHour) return null;
     const t = inspectedHour.time;
-    const timePart = t.includes('T') ? t.split('T')[1].slice(0, 5) : t.slice(0, 5);
-    const [hStr, mStr] = timePart.split(':');
-    const h = parseInt(hStr, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    return `${h12}:${mStr ?? '00'} ${ampm}`;
+    return t.includes('T') ? t.split('T')[1].slice(0, 5) : t.slice(0, 5);
   }, [inspectedHour]);
 
   const keyInsight = response.key_insight || generateDeterministicKeyInsight(

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Compass, Menu, User as UserIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Compass, Menu, User as UserIcon, Search, X } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveWeatherHeader } from './LiveWeatherHeader';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,26 @@ export interface HeaderProps {
   searchSlot?: React.ReactNode;
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+}
+
 export const Header: React.FC<HeaderProps> = ({
   onReset,
   onOpenSidebar,
@@ -20,6 +40,25 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, isAuthenticated } = useAuth();
   const { deviceLocation, deviceTemperature, isLocating, requestDeviceLocation } = useDeviceLocation();
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Close mobile search on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobileSearchOpen) {
+        setIsMobileSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileSearchOpen]);
+
+  // When reset is called, also close mobile search
+  const handleBrandReset = () => {
+    setIsMobileSearchOpen(false);
+    onReset?.();
+  };
 
   // The LiveWeatherHeader strictly represents the current device location and temperature.
   const displayLocation = deviceLocation;
@@ -47,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           <div
-            onClick={onReset}
+            onClick={handleBrandReset}
             className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer group transition-opacity hover:opacity-75 shrink-0"
           >
             <div
@@ -76,15 +115,33 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center Docked Search Slot (Desktop & Tablet) */}
-        {searchSlot && (
-          <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-4 min-w-[180px]">
+        {/* Center Docked Search Slot (Desktop & Tablet) - Rendered strictly when NOT mobile to prevent duplicate inputs */}
+        {searchSlot && !isMobile && (
+          <div className="flex flex-1 max-w-md xl:max-w-lg 2xl:max-w-xl mx-2 lg:mx-4 min-w-[180px]">
             {searchSlot}
           </div>
         )}
 
-        {/* Right side: persistent live weather/time header + theme switcher + Auth/Avatar */}
+        {/* Right side: persistent live weather/time header + theme switcher + Auth/Avatar + Mobile Search Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Mobile search trigger affordance (only when searchSlot exists and viewport is mobile) */}
+          {searchSlot && isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsMobileSearchOpen((prev) => !prev)}
+              aria-expanded={isMobileSearchOpen}
+              aria-label={isMobileSearchOpen ? 'Close search' : 'Search location or weather'}
+              className="p-2 rounded-xl border transition-colors cursor-pointer flex items-center justify-center"
+              style={{
+                backgroundColor: isMobileSearchOpen ? 'var(--surface-elevated)' : 'transparent',
+                borderColor: isMobileSearchOpen ? 'var(--border-strong)' : 'var(--border-subtle)',
+                color: isMobileSearchOpen ? 'var(--accent-primary)' : 'var(--text-primary)',
+              }}
+            >
+              {isMobileSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </button>
+          )}
+
           <LiveWeatherHeader
             location={displayLocation}
             temperature={displayTemperature}
@@ -126,9 +183,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Docked Search Slot */}
-      {searchSlot && (
-        <div className="md:hidden w-full pb-3 px-4">
+      {/* Mobile Expandable Docked Search Slot - Rendered strictly when mobile and toggled open */}
+      {searchSlot && isMobile && isMobileSearchOpen && (
+        <div className="w-full pb-3 px-4 transition-all">
           {searchSlot}
         </div>
       )}
