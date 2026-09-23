@@ -1,28 +1,53 @@
-import React, { useState } from 'react';
-import { Search, MapPin, LocateFixed, Loader2, Mic, MicOff } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, MapPin, LocateFixed, Loader2, Mic, MicOff, X, ArrowRight } from 'lucide-react';
 import { PRESET_LOCATIONS } from '../utils/locations';
 import { CoordinateInput, LanguageCode } from '../types/weather';
 import { LanguageSelector } from './LanguageSelector';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 
-interface QueryInputProps {
+export interface QueryInputProps {
   onQuerySubmit: (query: string, location?: CoordinateInput, language?: LanguageCode) => void;
   isLoading?: boolean;
   selectedLanguage: LanguageCode;
   onLanguageChange: (lang: LanguageCode) => void;
+  variant?: 'discovery' | 'docked';
+  initialQuery?: string;
 }
+
+const ROTATING_PROMPTS = [
+  'Ask about the weather anywhere...',
+  'Will it rain in Kolkata tonight?',
+  'Cherrapunji rainfall outlook',
+  'How hot will Gariahat feel this afternoon?',
+  'Will I need an umbrella in Koramangala at 7?',
+  'Weather at my location',
+];
 
 export const QueryInput: React.FC<QueryInputProps> = ({
   onQuerySubmit,
-  isLoading,
+  isLoading = false,
   selectedLanguage,
   onLanguageChange,
+  variant = 'discovery',
+  initialQuery = '',
 }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
+  const [isFocused, setIsFocused] = useState(false);
   const [isGeolocating, setIsGeolocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<CoordinateInput | null>(null);
+  const [promptIndex, setPromptIndex] = useState(0);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync initialQuery if it changes externally
+  useEffect(() => {
+    if (initialQuery && initialQuery !== query) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]);
+
+  // Voice recording integration
   const {
     isSupported: isVoiceSupported,
     isRecording,
@@ -34,18 +59,44 @@ export const QueryInput: React.FC<QueryInputProps> = ({
   } = useVoiceRecording({
     onTranscript: (spokenText) => {
       setQuery(spokenText);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     },
   });
+
+  // Rotating placeholder mechanism (respects prefers-reduced-motion)
+  useEffect(() => {
+    if (variant === 'docked') return;
+    if (isFocused || query.trim().length > 0 || isRecording || isTranscribing) return;
+    if (selectedLanguage === 'hi' || selectedLanguage === 'bn') return;
+
+    // Check reduced motion preference
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const timer = setInterval(() => {
+      setPromptIndex((prev) => (prev + 1) % ROTATING_PROMPTS.length);
+    }, 4800);
+
+    return () => clearInterval(timer);
+  }, [variant, isFocused, query, isRecording, isTranscribing, selectedLanguage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isRecording) stopRecording();
     if (!query.trim()) return;
+
     setGeoError(null);
     clearVoiceError();
+
     const lower = query.toLowerCase();
     const isLocationQuery = lower.includes('my location') || lower.includes('current location');
     const locPayload = isLocationQuery && pendingLocation ? pendingLocation : undefined;
+
     onQuerySubmit(query.trim(), locPayload, selectedLanguage);
   };
 
@@ -73,6 +124,7 @@ export const QueryInput: React.FC<QueryInputProps> = ({
     if (isRecording) stopRecording();
     setGeoError(null);
     clearVoiceError();
+
     if (!navigator.geolocation) {
       setGeoError('Geolocation is not supported by your browser.');
       return;
@@ -108,59 +160,115 @@ export const QueryInput: React.FC<QueryInputProps> = ({
     );
   };
 
-  return (
-    <div className="w-full max-w-xl mx-auto space-y-2.5">
-      {/* Centered Language Selector without label */}
-      <div className="flex justify-center mb-1">
-        <LanguageSelector
-          currentLanguage={selectedLanguage}
-          onLanguageChange={onLanguageChange}
-          disabled={isLoading || isGeolocating || isRecording || isTranscribing}
-        />
-      </div>
+  const handleClear = () => {
+    setQuery('');
+    setGeoError(null);
+    clearVoiceError();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
 
-      <form onSubmit={handleSubmit} className="relative group">
+  // Determine active placeholder string
+  const getPlaceholder = () => {
+    if (isRecording) return 'Listening... speak now';
+    if (isTranscribing) return 'Transcribing audio...';
+    if (selectedLanguage === 'hi') {
+      return 'मौसम के बारे में पूछें (उदा. क्या कल दिल्ली में बारिश होगी?)';
+    }
+    if (selectedLanguage === 'bn') {
+      return 'আবহাওয়া সম্পর্কে জিজ্ঞাসা করুন (যেমন: কাল কলকাতায় কি বৃষ্টি হবে?)';
+    }
+    if (variant === 'docked') {
+      return 'Search or ask follow-up...';
+    }
+    return ROTATING_PROMPTS[promptIndex];
+  };
+
+  const isDocked = variant === 'docked';
+
+  return (
+    <div className={`w-full ${isDocked ? 'max-w-full' : 'max-w-2xl mx-auto space-y-3'}`}>
+      {/* Discovery Mode: Clean Centered Language Selector */}
+      {!isDocked && (
+        <div className="flex justify-center mb-1">
+          <LanguageSelector
+            currentLanguage={selectedLanguage}
+            onLanguageChange={onLanguageChange}
+            disabled={isLoading || isGeolocating || isRecording || isTranscribing}
+          />
+        </div>
+      )}
+
+      {/* The Unified Omnibar Form */}
+      <form onSubmit={handleSubmit} className="relative group w-full">
         <div
-          className="relative flex items-center rounded-2xl p-2 shadow-lg transition-all"
+          className={`relative flex items-center transition-all ${
+            isDocked
+              ? 'rounded-xl px-2.5 py-1.5'
+              : 'rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5'
+          }`}
           style={{
             backgroundColor: 'var(--surface-input)',
-            border: '1px solid var(--border)',
-          }}
-          onFocusCapture={(e) => {
-            (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--text-muted)';
-          }}
-          onBlurCapture={(e) => {
-            (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
+            border: `1px solid ${isFocused ? 'var(--border-strong)' : 'var(--border-default)'}`,
+            boxShadow: isFocused ? '0 0 0 2px var(--focus-ring)' : 'var(--shadow-sm)',
           }}
         >
-          <div className="pl-4" style={{ color: 'var(--text-muted)' }}>
-            <Search className="w-5 h-5" />
+          {/* Leading Search Icon */}
+          <div
+            className={`shrink-0 flex items-center justify-center ${isDocked ? 'pr-2' : 'pr-3'}`}
+            style={{ color: isFocused ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+          >
+            <Search className={isDocked ? 'w-4 h-4' : 'w-5 h-5'} />
           </div>
+
+          {/* Main Search Input Field */}
           <input
+            ref={inputRef}
             type="text"
             value={query}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             onChange={(e) => {
               setQuery(e.target.value);
               if (geoError) setGeoError(null);
               if (voiceError) clearVoiceError();
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleClear();
+              }
+            }}
             disabled={isLoading || isGeolocating}
-            placeholder={
-              isRecording
-                ? 'Listening... speak now'
-                : isTranscribing
-                ? 'Transcribing...'
-                : selectedLanguage === 'hi'
-                ? 'मौसम के बारे में पूछें (उदा. क्या कल दिल्ली में बारिश होगी?)'
-                : selectedLanguage === 'bn'
-                ? 'আবহাওয়া সম্পর্কে জিজ্ঞাসা করুন (যেমন: কাল কলকাতায় কি বৃষ্টি হবে?)'
-                : 'Ask anything e.g. Will it rain in Darjeeling tomorrow?'
-            }
-            className="flex-1 min-w-0 bg-transparent px-3 py-3 focus:outline-none text-base"
+            placeholder={getPlaceholder()}
+            aria-label="Search weather by location or question"
+            className={`flex-1 min-w-0 bg-transparent focus:outline-none ${
+              isDocked ? 'text-xs sm:text-sm py-1' : 'text-sm sm:text-base py-1.5'
+            }`}
             style={{
               color: 'var(--text-primary)',
             }}
           />
+
+          {/* Clear Button (when text exists) */}
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={handleClear}
+              title="Clear input (Esc)"
+              aria-label="Clear query input"
+              className="p-1 rounded-md transition-colors cursor-pointer shrink-0 mr-1"
+              style={{ color: 'var(--text-tertiary)' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+              }}
+            >
+              <X className={isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+            </button>
+          )}
 
           {/* Voice Input Button */}
           {isVoiceSupported && (
@@ -176,13 +284,13 @@ export const QueryInput: React.FC<QueryInputProps> = ({
                   : 'Voice input (English, Hindi, Bengali)'
               }
               aria-label={isRecording ? 'Stop voice recording' : 'Start voice input'}
-              className={`p-2.5 mr-1 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center relative ${
+              className={`p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center relative shrink-0 ${
                 isRecording ? 'animate-pulse' : ''
               }`}
               style={{
-                color: isRecording ? '#ef4444' : 'var(--text-secondary)',
-                backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                border: isRecording ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
+                color: isRecording ? 'var(--severity-red)' : 'var(--text-secondary)',
+                backgroundColor: isRecording ? 'var(--severity-red-bg)' : 'transparent',
+                border: isRecording ? '1px solid var(--severity-red-border)' : '1px solid transparent',
               }}
               onMouseEnter={(e) => {
                 if (!e.currentTarget.disabled && !isRecording) {
@@ -198,31 +306,25 @@ export const QueryInput: React.FC<QueryInputProps> = ({
               }}
             >
               {isTranscribing ? (
-                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                <Loader2 className={`${isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} animate-spin`} style={{ color: 'var(--accent-primary)' }} />
               ) : isRecording ? (
-                <MicOff className="w-5 h-5 text-red-500 animate-pulse" />
+                <MicOff className={`${isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-500 animate-pulse`} />
               ) : (
-                <Mic className="w-5 h-5" />
-              )}
-              {isRecording && (
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                </span>
+                <Mic className={isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
               )}
             </button>
           )}
 
-          {/* Location button */}
+          {/* Current Location Button */}
           <button
             type="button"
             onClick={handleUseMyLocation}
             disabled={isLoading || isGeolocating || isRecording || isTranscribing}
-            title="Use my location"
-            aria-label="Use my location"
-            className="p-2.5 mr-1 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+            title="Use my current location"
+            aria-label="Use my current location"
+            className="p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 mr-1"
             style={{
-              color: 'var(--text-secondary)',
+              color: isGeolocating ? 'var(--accent-primary)' : 'var(--text-secondary)',
               backgroundColor: 'transparent',
             }}
             onMouseEnter={(e) => {
@@ -233,20 +335,27 @@ export const QueryInput: React.FC<QueryInputProps> = ({
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+              (e.currentTarget as HTMLButtonElement).style.color = isGeolocating ? 'var(--accent-primary)' : 'var(--text-secondary)';
             }}
           >
             {isGeolocating ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className={`${isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} animate-spin`} />
             ) : (
-              <LocateFixed className="w-5 h-5" />
+              <LocateFixed className={isDocked ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
             )}
           </button>
 
+          {/* Submit Action Button */}
           <button
             type="submit"
             disabled={isLoading || isGeolocating || isRecording || isTranscribing || !query.trim()}
-            className="px-4 py-2.5 font-medium text-sm rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            title="Submit query (Enter)"
+            aria-label="Submit weather query"
+            className={`font-medium transition-all shrink-0 cursor-pointer flex items-center justify-center ${
+              isDocked
+                ? 'px-2.5 py-1 text-xs rounded-lg'
+                : 'px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-xl'
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
             style={{
               backgroundColor: 'var(--btn-primary-bg)',
               color: 'var(--btn-primary-text)',
@@ -260,58 +369,86 @@ export const QueryInput: React.FC<QueryInputProps> = ({
               (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--btn-primary-bg)';
             }}
           >
-            Ask
+            {isDocked ? (
+              <ArrowRight className="w-3.5 h-3.5" />
+            ) : (
+              <span>Ask</span>
+            )}
           </button>
         </div>
       </form>
 
-      {/* Geolocation or Voice error or listening status message */}
+      {/* Geolocation or Voice Error / Status Notification */}
       {(isRecording || isTranscribing || geoError || voiceError) && (
         <div
           className="text-xs text-center px-3 py-1.5 rounded-lg transition-all"
           style={{
-            color: voiceError || geoError ? 'var(--alert-warning-text, #f59e0b)' : 'var(--accent, #a78bfa)',
-            backgroundColor: voiceError || geoError ? 'var(--alert-warning-bg, rgba(245, 158, 11, 0.1))' : 'var(--surface-elevated)',
-            border: `1px solid ${voiceError || geoError ? 'var(--alert-warning-border, rgba(245, 158, 11, 0.2))' : 'var(--border-muted)'}`,
+            color: voiceError || geoError ? 'var(--severity-orange-text)' : 'var(--accent-primary)',
+            backgroundColor: voiceError || geoError ? 'var(--severity-orange-bg)' : 'var(--surface-elevated)',
+            border: `1px solid ${voiceError || geoError ? 'var(--severity-orange-border)' : 'var(--border-subtle)'}`,
           }}
         >
-          {voiceError || geoError || (isTranscribing ? 'Transcribing audio...' : `Listening (${selectedLanguage === 'hi' ? 'Hindi' : selectedLanguage === 'bn' ? 'Bengali' : 'English'})... Speak now`)}
+          {voiceError ||
+            geoError ||
+            (isTranscribing
+              ? 'Transcribing audio...'
+              : `Listening (${selectedLanguage === 'hi' ? 'Hindi' : selectedLanguage === 'bn' ? 'Bengali' : 'English'})... Speak now`)}
         </div>
       )}
 
-      {/* Quick Location Suggestions in ONE clean horizontal row */}
-      <div className="flex items-center justify-center gap-1.5 pt-1 overflow-x-auto whitespace-nowrap">
-        <span
-          className="text-xs mr-1 flex items-center gap-1 flex-shrink-0"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <MapPin className="w-3 h-3" /> Quick Locations:
-        </span>
-        {PRESET_LOCATIONS.map((loc) => (
-          <button
-            key={loc.name}
-            type="button"
-            onClick={() => handlePresetClick(loc.name)}
-            className="px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer flex-shrink-0"
-            style={{
-              backgroundColor: 'var(--surface-elevated)',
-              border: '1px solid var(--border-muted)',
-              color: 'var(--text-secondary)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-elevated)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
-            }}
-          >
-            {loc.name}
-          </button>
-        ))}
-      </div>
+      {/* Discovery Mode: Capability Cue & Contextual Suggestions */}
+      {!isDocked && (
+        <div className="space-y-3 pt-1">
+          {/* Subtle Geographic Capability Cue */}
+          <div className="pt-1 text-center select-none pointer-events-none space-y-0.5">
+            <p
+              className="type-label text-[11px] tracking-widest uppercase opacity-75"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Search beyond cities
+            </p>
+            <p
+              className="type-body-sm text-xs font-light"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Cities &middot; Towns &middot; Villages &middot; Localities
+            </p>
+          </div>
+
+          {/* Contextual Preset Examples */}
+          <div className="flex items-center justify-center gap-1.5 pt-1 overflow-x-auto whitespace-nowrap scrollbar-none px-2">
+            <span
+              className="type-label text-[10px] mr-1 flex items-center gap-1 shrink-0"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              <MapPin className="w-3 h-3" /> Examples:
+            </span>
+            {PRESET_LOCATIONS.map((loc) => (
+              <button
+                key={loc.name}
+                type="button"
+                onClick={() => handlePresetClick(loc.name)}
+                className="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer shrink-0 border"
+                style={{
+                  backgroundColor: 'var(--surface-elevated)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-subtle)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+                }}
+              >
+                {loc.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

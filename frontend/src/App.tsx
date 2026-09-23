@@ -187,11 +187,23 @@ function AppContent() {
       {/* Ambient atmospheric backdrop */}
       <div className="stormops-atmospheric-backdrop" />
 
-      {/* Top Header */}
+      {/* Top Header with Docked Search Slot in Intelligence State */}
       <Header
         onReset={handleReset}
         onOpenSidebar={() => setIsSidebarOpen(true)}
         onOpenAuthModal={handleOpenAuthModal}
+        searchSlot={
+          queryResponse || isThreadActive || isLoading || error ? (
+            <QueryInput
+              variant="docked"
+              onQuerySubmit={handleQuerySubmit}
+              isLoading={isLoading}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+              initialQuery={currentQuery}
+            />
+          ) : undefined
+        }
       />
 
       {/* Sidebar Navigation Drawer */}
@@ -222,32 +234,35 @@ function AppContent() {
       )}
 
       {/* Main Container */}
-      <main className="stormops-container flex-1 py-8 sm:py-12 flex flex-col items-center">
+      <main className="stormops-container flex-1 py-6 sm:py-10 flex flex-col items-center">
         {/* Landing Hero Section (only when no query response, no restored thread, not loading, no error) */}
         {!queryResponse && !isThreadActive && !isLoading && !error && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="stormops-discovery-canvas space-y-8 my-auto py-8 sm:py-12"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="stormops-discovery-canvas space-y-6 sm:space-y-8 my-auto py-8 sm:py-12"
           >
-            <div className="flex flex-col items-center space-y-3 max-w-2xl">
+            <div className="flex flex-col items-center space-y-2.5 max-w-2xl">
               {isAuthenticated && <PersonalizedGreeting />}
               <h1
-                className="text-4xl sm:text-5xl font-light tracking-tight"
+                className="type-display"
                 style={{ color: 'var(--text-primary)' }}
               >
-                WeatherGPT
+                StormOps
               </h1>
               <p
-                className="text-lg font-normal"
+                className="type-body text-base sm:text-lg font-normal"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                Contextual, real-time meteorological intelligence.
+                Conversational weather intelligence.
               </p>
             </div>
 
-            <div className="w-full pt-4">
+            <div className="w-full pt-2">
               <QueryInput
+                variant="discovery"
                 onQuerySubmit={handleQuerySubmit}
                 isLoading={isLoading}
                 selectedLanguage={selectedLanguage}
@@ -255,18 +270,6 @@ function AppContent() {
               />
             </div>
           </motion.div>
-        )}
-
-        {/* Query Input Sticky Bar when viewing results or active conversation thread */}
-        {(queryResponse || isThreadActive || isLoading || error) && (
-          <div className="w-full mb-8">
-            <QueryInput
-              onQuerySubmit={handleQuerySubmit}
-              isLoading={isLoading}
-              selectedLanguage={selectedLanguage}
-              onLanguageChange={setSelectedLanguage}
-            />
-          </div>
         )}
 
         {/* Content Reveal Area */}

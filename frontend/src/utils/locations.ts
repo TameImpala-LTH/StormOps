@@ -2,11 +2,11 @@ import { PresetLocation } from '../types/weather';
 
 export const PRESET_LOCATIONS: PresetLocation[] = [
   { name: 'Kolkata', country: 'India', latitude: 22.5726, longitude: 88.3639 },
-  { name: 'Delhi', country: 'India', latitude: 28.6139, longitude: 77.2090 },
-  { name: 'Mumbai', country: 'India', latitude: 19.0760, longitude: 72.8777 },
-  { name: 'Kerala', country: 'India', latitude: 10.3529, longitude: 76.5120 },
-  { name: 'Goa', country: 'India', latitude: 15.3005, longitude: 74.0855 },
-  { name: 'Rajasthan', country: 'India', latitude: 27.0238, longitude: 74.2179 },
+  { name: 'Darjeeling', country: 'India', latitude: 27.0410, longitude: 88.2663 },
+  { name: 'Koramangala', country: 'India', latitude: 12.9352, longitude: 77.6245 },
+  { name: 'Cherrapunji', country: 'India', latitude: 25.2744, longitude: 91.7323 },
+  { name: 'Munnar', country: 'India', latitude: 10.0889, longitude: 77.0595 },
+  { name: 'Leh', country: 'India', latitude: 34.1526, longitude: 77.5771 },
 ];
 
 export const findLocationByName = (query: string): PresetLocation | undefined => {
